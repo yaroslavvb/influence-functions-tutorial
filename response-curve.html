@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Response Curve</title>
+<script>
+window.MathJax = { tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$']] },
+                   svg: { fontCache: 'global' }, options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#fcfcfb; --surface:#ffffff; --surface-2:#f3f2ee; --border:#e2e0d9;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#8a8880;
+  --accent:#2a78d6; --new:#e34948; --grid:#ebe9e3; --axis:#c9c6bd;
+  --curve:#4a3aa7; --tan:#1baf7a; --gn:#eda100; --damp:#e87ba4;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#161615; --surface:#1e1e1c; --surface-2:#262624; --border:#3a3936;
+    --text:#f4f3ee; --text-2:#c3c2b7; --muted:#8f8e86;
+    --accent:#3987e5; --new:#e66767; --grid:#2a2a27; --axis:#4a4945;
+    --curve:#9085e9; --tan:#3cc491; --gn:#d9a53a; --damp:#e08bb0;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#3aa13a; --s7:#9085e9;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#161615; --surface:#1e1e1c; --surface-2:#262624; --border:#3a3936;
+  --text:#f4f3ee; --text-2:#c3c2b7; --muted:#8f8e86;
+  --accent:#3987e5; --new:#e66767; --grid:#2a2a27; --axis:#4a4945;
+  --curve:#9085e9; --tan:#3cc491; --gn:#d9a53a; --damp:#e08bb0;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#3aa13a; --s7:#9085e9;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:1160px;margin:0 auto;padding-inline:20px;padding-block:24px 80px}
+h1{font-size:2rem;line-height:1.2;margin:.4em 0 .2em;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:1.45rem;margin:2.2em 0 .5em;letter-spacing:-.01em;border-top:1px solid var(--border);padding-top:1em;text-wrap:balance}
+h3{font-size:1.1rem;margin:1.4em 0 .4em}
+p,li{max-width:72ch}
+.lead{color:var(--text-2);font-size:1.05rem}
+a{color:var(--accent)}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+code{background:var(--surface-2);padding:1px 5px;border-radius:4px}
+mjx-container[display="true"]{overflow-x:auto;overflow-y:hidden;padding:2px 0}
+.note{background:var(--surface-2);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 6px 6px 0;max-width:72ch;margin:14px 0}
+.note.warn{border-left-color:var(--new)}
+
+.play{display:grid;grid-template-columns:minmax(300px,600px) minmax(300px,1fr);gap:20px;align-items:start;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin:16px 0}
+@media (max-width:860px){.play{grid-template-columns:1fr}}
+.canvas-wrap{position:relative;width:100%;aspect-ratio:1/1;max-width:600px}
+canvas{width:100%;height:100%;display:block;border-radius:8px;background:var(--surface);border:1px solid var(--border);touch-action:none}
+#cv{cursor:crosshair}
+.plot-wrap{width:100%;aspect-ratio:16/9;max-width:100%;margin-top:10px}
+.hint{font-size:.85rem;color:var(--muted);margin:8px 0 0}
+.controls{display:flex;flex-direction:column;gap:12px;font-size:.95rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row label{display:flex;align-items:center;gap:6px}
+button{font:inherit;font-size:.9rem;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+select{font:inherit;font-size:.9rem;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.slider{background:var(--surface-2);border-radius:8px;padding:10px 12px}
+.slider .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.slider .val{font-family:ui-monospace,Menlo,monospace;font-weight:600}
+.slider .ticks{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.85rem;color:var(--text-2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:16px;height:3px;border-radius:2px}
+.sw.dash{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px);height:2px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%}
+.ring{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid currentColor}
+table{border-collapse:collapse;width:100%;font-size:.88rem;margin:8px 0}
+th,td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
+th{color:var(--text-2);font-weight:600;font-size:.8rem}
+td:first-child,th:first-child{text-align:left}
+.tbl-wrap{overflow-x:auto}
+.stat{display:inline-block;background:var(--surface-2);border-radius:6px;padding:4px 10px;margin:4px 6px 4px 0;font-size:.9rem}
+.stat b{font-family:ui-monospace,Menlo,monospace}
+.dim{color:var(--muted);font-size:.85rem}
+footer{margin-top:60px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+
+<main>
+<h1>The Response Curve</h1>
+<p class="lead">An influence function is the tangent, at $\varepsilon=0$, of the curve $\theta^\star(\varepsilon)$ traced by the minimizer as one observation's weight changes. This page draws the whole curve, marks how fast it is traversed, and lets you bend the observations so that the curve bends too.</p>
+<p class="dim">Companion pages: <a href="./">Influence Functions, the Kaczmarz Way</a> (lines and projections) and <a href="price-of-influence.html">The Price of Influence</a> (the general derivation and the costs).</p>
+
+<h2 id="linear">1. With linear observations the curve is a straight line, traversed at a slowing pace</h2>
+<p>Take the setting of the companion page: parameters $x\in\mathbb R^2$, observations $a_i^\top x=b_i$ with unit normals, loss $f(x)=\tfrac12\sum_i(a_i^\top x-b_i)^2$, Hessian $H=\sum_i a_ia_i^\top$, and a new observation $(a,\beta)$ added with weight $\varepsilon$. Sherman–Morrison gives the minimizer in closed form:
+$$x(\varepsilon)=x^\star-\underbrace{\frac{\varepsilon}{1+\varepsilon q}}_{s(\varepsilon)}\;r_{\text{new}}\,H^{-1}a,\qquad q=a^\top H^{-1}a,\quad r_{\text{new}}=a^\top x^\star-\beta .$$
+Everything about the shape of the response curve is in this line.</p>
+<ul>
+  <li><strong>It is straight.</strong> $x(\varepsilon)$ moves along the fixed direction $H^{-1}a$ for every $\varepsilon$. The influence function gets the <em>direction</em> exactly right; only the distance travelled is approximated.</li>
+  <li><strong>It is traversed with a Möbius speed.</strong> The distance along the line is proportional to $s(\varepsilon)=\varepsilon/(1+\varepsilon q)$, not to $\varepsilon$. The first-order prediction uses $s\approx\varepsilon$, so it overshoots by the factor $1+\varepsilon q$. Think of $s$ as the <em>effective weight</em> of the new observation once the rest of the data has pushed back.</li>
+  <li><strong>It has an endpoint.</strong> As $\varepsilon\to\infty$, $s\to1/q$ and $x(\infty)$ lands exactly on the new line: the old least-squares point projected onto the new constraint in the metric $H$. Doubling a large $\varepsilon$ barely moves anything.</li>
+  <li><strong>It has a pole.</strong> As $\varepsilon\downarrow-1/q$, $s\to-\infty$ and the minimizer runs off to infinity in the direction $-H^{-1}a$. At $\varepsilon=-1/q$ the augmented Hessian $H+\varepsilon aa^\top$ is singular; below it the problem is unbounded. Removing an ordinary observation is $\varepsilon=-1$, which is safe because for an observation already in the fit $q$ is its leverage, always below one.</li>
+</ul>
+<p>So in parameter space the response curve is a half-line from the pole to the endpoint, the point $x^\star$ sitting somewhere along it. In the space $(x,\varepsilon)$, with the weight as a third coordinate, it is a planar hyperbola: asymptotically vertical above $x(\infty)$, asymptotically horizontal at the pole.</p>
+
+<h2 id="play">2. Playground</h2>
+<p>The response curve is drawn in purple with tick marks at $\varepsilon=-\tfrac12,\ \tfrac12,\ 1,\ 2,\ 4,\ 8,\ 32$ and an arrowhead at the $\varepsilon\to\infty$ endpoint. The influence-function tangent is green, with hollow markers at the same $\varepsilon$ values so you can see the first-order prediction pull away from the truth. Drag the scrubber to move along both.</p>
+<div class="note">The <strong>curvature</strong> slider bends every observation from a line into a circle tangent to that line (radius $1/\kappa$). Lines are circles of infinite radius; with finite radius the residual $r_i(x)=1/\kappa-\lVert x-c_i\rVert$ is nonlinear, the problem is a genuine nonlinear least squares, and the response curve stops being straight.</div>
+
+<div class="play">
+  <div>
+    <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+    <p class="hint">Drag the circle handles to move observations (each handle sits on its observation; the second handle sets its direction). Press and drag on empty space to draw a new (red) observation.</p>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--text)"></span> $x^\star$</span>
+      <span><span class="sw" style="background:var(--curve)"></span> exact response curve $x(\varepsilon)$</span>
+      <span><span class="sw" style="background:var(--tan)"></span> influence tangent $x^\star-\varepsilon H^{-1}\nabla\ell_{\text{new}}$</span>
+      <span><span class="sw dash" style="color:var(--gn)"></span> Gauss‑Newton tangent</span>
+      <span><span class="sw dash" style="color:var(--damp)"></span> damped tangent $(G+\lambda I)^{-1}$</span>
+      <span><span class="dot" style="background:var(--new)"></span> $x(\varepsilon)$ at the scrubber</span>
+      <span><span class="ring" style="color:var(--new)"></span> first-order prediction at the scrubber</span>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="slider">
+      <div class="top"><span>Weight of the new observation <span class="mono">ε</span></span><span class="val" id="epsVal"></span></div>
+      <input type="range" id="eps" min="0" max="1000" step="1" value="500" aria-label="epsilon scrubber">
+      <div class="ticks"><span id="tkL">pole</span><span>0</span><span>∞</span></div>
+    </div>
+    <div class="slider">
+      <div class="top"><span>Curvature of observations <span class="mono">κ</span></span><span class="val" id="kapVal"></span></div>
+      <input type="range" id="kap" min="0" max="0.45" step="0.005" value="0">
+      <div class="ticks"><span>0 (lines)</span><span>circles of radius 1/κ</span></div>
+    </div>
+    <div class="slider">
+      <div class="top"><span>Damping <span class="mono">λ</span> for the damped tangent</span><span class="val" id="lamVal"></span></div>
+      <input type="range" id="lam" min="0" max="3" step="0.01" value="0">
+    </div>
+    <div class="row">
+      <label>Plot below: <select id="meas">
+        <option value="x0">parameter x₁</option><option value="x1">parameter x₂</option>
+        <option value="r0" selected>residual of observation 1</option><option value="r1">residual of observation 2</option>
+        <option value="r2">residual of observation 3</option><option value="r3">residual of observation 4</option>
+        <option value="loss">total loss of the old observations</option>
+      </select></label>
+    </div>
+    <div class="row">
+      <button id="btnRandomNew">Random new observation</button>
+      <button id="btnRandomize">Randomize base set</button>
+      <button id="btnReset">Reset</button>
+    </div>
+    <div id="stats"></div>
+    <div class="tbl-wrap"><table id="tbl"></table></div>
+  </div>
+</div>
+
+<h3>The same curve as a function of $\varepsilon$</h3>
+<p>Parameter space hides the parameterization. Below, the chosen quantity is plotted against $\varepsilon$ from just above the pole to $\varepsilon=8$, exact in purple and first-order in green (a straight line, since it is a derivative). The dashed vertical line is the pole; the dashed horizontal line is the value at $\varepsilon\to\infty$. For lines the exact curve is a hyperbola with these two asymptotes.</p>
+<div class="plot-wrap"><canvas id="pl"></canvas></div>
+
+<h2 id="bent">3. What bending the observations changes</h2>
+<p>With $\kappa>0$ each residual is $r_i(x)=1/\kappa-\lVert x-c_i\rVert$, so $\nabla r_i$ is the unit vector pointing from $x$ toward the center $c_i$ and $\nabla^2 r_i=-\kappa_i(I-uu^\top)$ with $\kappa_i=1/\lVert x-c_i\rVert$: the residual curves along the circle. The Hessian of the total loss picks up a second term,
+$$\nabla^2 f=\sum_i\Big(\underbrace{\nabla r_i\nabla r_i^\top}_{\text{Gauss–Newton }G}+\underbrace{r_i\,\nabla^2 r_i}_{\text{dropped by }G}\Big).$$
+Three things become visible in the playground.</p>
+<ul>
+  <li><strong>The curve bends.</strong> The direction $x(\varepsilon)$ moves in depends on where it currently is, because the normals $\nabla r_i$ rotate as $x$ moves around the circles. The influence function is still the tangent at $\varepsilon=0$, but it is now wrong in direction as well as in length. For small $\kappa$ the bend is slight; as $\kappa$ grows it becomes a clearly curved arc.</li>
+  <li><strong>Two tangents.</strong> The exact tangent uses the full Hessian; the Gauss‑Newton tangent uses $G$. They differ by the $r_i\nabla^2 r_i$ terms, which are large exactly when residuals are large, so the two tangents agree for a well-fitting model and disagree for a poorly-fitting one. Practical influence functions use $G$ (it is positive semidefinite and factorizes); this is the price.</li>
+  <li><strong>Damping shortens the tangent.</strong> Replacing $G$ by $G+\lambda I$ shrinks the step, most in the flat directions. The damped tangent is a worse tangent but often a better predictor of $x(\varepsilon)$ at finite $\varepsilon$, because the true curve also slows down. In the linear case a damping $\lambda$ mimics the Möbius factor $1/(1+\varepsilon q)$ for one particular $\varepsilon$.</li>
+</ul>
+<p>The negative side of the curve is computed by continuation from $x^\star$ and stops where the augmented Hessian at the minimizer loses positive definiteness. That is the pole; for circles it can arrive sooner or later than $-1/q$, and just before it the minimizer accelerates away.</p>
+
+<footer>Self-contained page: canvas for the drawings, MathJax for the formulas. Nonlinear minimizers are found by Levenberg–Marquardt with warm starts along $\varepsilon$.</footer>
+</main>
+
+<script>
+(function(){
+'use strict';
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PAL=()=>['--s1','--s2','--s3','--s4','--s5','--s6','--s7'].map(css);
+const R=5;
+const dot=(u,v)=>u[0]*v[0]+u[1]*v[1], add=(u,v)=>[u[0]+v[0],u[1]+v[1]], sub=(u,v)=>[u[0]-v[0],u[1]-v[1]], mul=(u,s)=>[u[0]*s,u[1]*s], norm=u=>Math.hypot(u[0],u[1]);
+const f3=x=>{ if(!isFinite(x)) return x>0?'∞':'−∞'; let s=x.toFixed(3); if(s==='-0.000') s='0.000'; return s.replace('-','−'); };
+const f2=x=>{ let s=x.toFixed(2); if(s==='-0.00') s='0.00'; return s.replace('-','−'); };
+const rnd=(lo,hi)=>lo+Math.random()*(hi-lo);
+const $=id=>document.getElementById(id);
+
+const DEFAULT_LINES=()=>[{p:[-4,-2.2],q:[4,0.8]},{p:[-1.6,4],q:[1.6,-3.5]},{p:[-4,2.4],q:[4,3.0]},{p:[1.2,-4],q:[3.4,4]}];
+const DEFAULT_NEW=()=>({p:[-4,4.2],q:[4,2.2]});
+const S={lines:DEFAULT_LINES(),newLine:DEFAULT_NEW(),kap:0,lam:0,meas:'r0',epsIdx:500};
+const TICKS=[-0.5,0.5,1,2,4,8,32];
+
+// observation: unit normal a, offset b; with curvature kap: center c = foot + a/kap
+function obs(l,kap){
+  const d=sub(l.q,l.p), n=norm(d)||1e-9, a=[d[1]/n,-d[0]/n], b=dot(a,l.p);
+  const foot=mul(a,b);
+  if(kap<=0) return {a,b,kap:0};
+  return {a,b,kap,c:add(foot,mul(a,1/kap)),Rad:1/kap};
+}
+// residual, gradient, Hessian of residual
+function res(o,x){
+  if(o.kap<=0) return {r:dot(o.a,x)-o.b, g:o.a, Hr:[[0,0],[0,0]]};
+  const dx=sub(x,o.c), n=norm(dx)||1e-9, u=mul(dx,1/n);
+  const r=o.Rad-n, g=mul(u,-1);
+  const Hr=[[-(1-u[0]*u[0])/n, (u[0]*u[1])/n],[(u[0]*u[1])/n, -(1-u[1]*u[1])/n]];
+  return {r,g,Hr};
+}
+function solve2(M,v){ const det=M[0][0]*M[1][1]-M[0][1]*M[1][0]; if(Math.abs(det)<1e-14) return null;
+  return [(M[1][1]*v[0]-M[0][1]*v[1])/det, (-M[1][0]*v[0]+M[0][0]*v[1])/det]; }
+function minEig(M){ const tr=M[0][0]+M[1][1], det=M[0][0]*M[1][1]-M[0][1]*M[1][0]; return tr/2-Math.sqrt(Math.max(0,tr*tr/4-det)); }
+
+// total objective with weights: base obs weight 1, new obs weight eps
+function evalF(O,newO,eps,x){
+  let F=0,g=[0,0],H=[[0,0],[0,0]],G=[[0,0],[0,0]];
+  const acc=(o,w)=>{ const {r,g:gr,Hr}=res(o,x); F+=w*0.5*r*r; g[0]+=w*r*gr[0]; g[1]+=w*r*gr[1];
+    for(let i=0;i<2;i++)for(let j=0;j<2;j++){ G[i][j]+=w*gr[i]*gr[j]; H[i][j]+=w*(gr[i]*gr[j]+r*Hr[i][j]); } };
+  O.forEach(o=>acc(o,1)); if(newO&&eps!==0) acc(newO,eps);
+  return {F,g,H,G};
+}
+// Levenberg-Marquardt from x0
+function minimize(O,newO,eps,x0){
+  let x=x0.slice(), mu=1e-3, ok=false;
+  let e=evalF(O,newO,eps,x);
+  for(let it=0;it<200;it++){
+    if(norm(e.g)<1e-11){ ok=true; break; }
+    const M=[[e.H[0][0]+mu,e.H[0][1]],[e.H[1][0],e.H[1][1]+mu]];
+    let d=solve2(M,[-e.g[0],-e.g[1]]);
+    if(!d||minEig(M)<=0){ mu*=10; if(mu>1e12) break; continue; }
+    const xn=add(x,d), en=evalF(O,newO,eps,xn);
+    if(en.F<=e.F){ x=xn; e=en; mu=Math.max(mu/3,1e-12); if(norm(d)<1e-12){ ok=true; break; } } else { mu*=4; if(mu>1e12) break; }
+  }
+  ok = ok || norm(e.g)<1e-6*(1+Math.abs(e.F)); return {x,ok,e};
+}
+
+let C=null;
+function compute(){
+  const kap=S.kap, O=S.lines.map(l=>obs(l,kap));
+  const base=minimize(O,null,0,[0,0]); // from origin; then polish from a few starts
+  let best=base; for(const s of [[2,2],[-2,2],[2,-2],[-2,-2]]){ const m=minimize(O,null,0,s); if(m.e.F<best.e.F-1e-12) best=m; }
+  const xs=best.x, e0=best.e; const H=e0.H, G=e0.G;
+  const out={O,xs,H,G,singular:minEig(H)<1e-8,r:O.map(o=>res(o,xs).r)};
+  if(!S.newLine||out.singular){ C=out; return; }
+  const nO=obs(S.newLine,kap); const rn=res(nO,xs); const gnew=mul(rn.g,rn.r);
+  // tangents
+  const tH=solve2(H,gnew)||[0,0], tG=solve2(G,gnew)||[0,0];
+  const Gl=[[G[0][0]+S.lam,G[0][1]],[G[1][0],G[1][1]+S.lam]]; const tL=solve2(Gl,gnew)||[0,0];
+  const vH=mul(tH,-1), vG=mul(tG,-1), vL=mul(tL,-1); // dx/deps
+  const q=dot(rn.g, solve2(H,rn.g)||[0,0]);
+  // continuation: positive eps (geometric), then a far point as "infinity"
+  const pos=[{eps:0,x:xs}]; let x=xs;
+  const grid=[]; for(let k=0;k<=120;k++) grid.push(Math.expm1(k/120*Math.log1p(2000))); // 0..2000 dense near 0
+  for(let k=1;k<grid.length;k++){ const m=minimize(O,nO,grid[k],x); if(!m.ok&&norm(m.e.g)>1e-6) break; x=m.x; pos.push({eps:grid[k],x}); }
+  const xinf=pos[pos.length-1].x;
+  // negative eps by small steps until loss of convexity
+  const neg=[]; x=xs; let eps=0, pole=null; const step=0.01;
+  for(let k=0;k<4000;k++){
+    eps-=step; const m=minimize(O,nO,eps,x);
+    if(!m.ok || minEig(m.e.H)<=1e-7*(m.e.H[0][0]+m.e.H[1][1]) || norm(m.x)>60){ pole=eps; break; }
+    x=m.x; neg.push({eps,x});
+  }
+  if(pole===null) pole=eps;
+  const curve=neg.slice().reverse().concat(pos);
+  const at=e=>{ // interpolate on curve
+    if(e>=pos[pos.length-1].eps) return xinf;
+    if(e<=curve[0].eps) return curve[0].x;
+    let lo=0,hi=curve.length-1; while(hi-lo>1){ const mid=(lo+hi)>>1; if(curve[mid].eps<=e) lo=mid; else hi=mid; }
+    const a=curve[lo],b=curve[hi],t=(e-a.eps)/(b.eps-a.eps||1); return add(a.x,mul(sub(b.x,a.x),t));
+  };
+  Object.assign(out,{nO,rn:rn.r,gnew,vH,vG,vL,q,curve,pos,neg,xinf,pole,at,epsMinCurve:curve[0].eps});
+  C=out;
+}
+
+// scrubber: slider 0..1000 -> eps in (pole, inf], 500 = 0
+function sliderToEps(v){
+  if(!C||!C.curve) return 0;
+  if(v>=1000) return Infinity;
+  if(v>=500){ const t=(v-500)/500; return Math.expm1(t*Math.log1p(64)); } // 0..64
+  const t=(500-v)/500; const lo=C.epsMinCurve; return t*lo; // 0..pole side
+}
+
+// ---------- canvas ----------
+const cv=$('cv'), ctx=cv.getContext('2d'); let W=600,DPR=1;
+const toPx=p=>[(p[0]+R)/(2*R)*W,(R-p[1])/(2*R)*W];
+const toW=px=>[px[0]/W*2*R-R, R-px[1]/W*2*R];
+function resize(){ const rect=cv.getBoundingClientRect(); W=Math.max(200,Math.floor(rect.width)); DPR=window.devicePixelRatio||1;
+  cv.width=Math.floor(W*DPR); cv.height=Math.floor(W*DPR); resizePlot(); draw(); }
+function drawObs(o,l,color,width,dash){
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash||[]);
+  if(o.kap<=0){ const d=sub(l.q,l.p), n=norm(d)||1e-9, u=[d[0]/n,d[1]/n];
+    const A=toPx(add(l.p,mul(u,-40))), B=toPx(add(l.p,mul(u,40))); ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.stroke(); }
+  else { const c=toPx(o.c), rp=o.Rad/(2*R)*W; ctx.beginPath(); ctx.arc(c[0],c[1],rp,0,Math.PI*2); ctx.stroke(); }
+  ctx.restore();
+}
+function circle(p,rad,fill,stroke,lw){ const q=toPx(p); ctx.beginPath(); ctx.arc(q[0],q[1],rad,0,Math.PI*2); if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();} }
+function seg(p,q,color,width,dash){ const A=toPx(p),B=toPx(q); ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash||[]); ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.stroke(); ctx.restore(); }
+function label(txt,p,color,dx,dy,bold){ const q=toPx(p); ctx.fillStyle=color; ctx.font=(bold?'700 ':'600 ')+'12px -apple-system,Segoe UI,Roboto,sans-serif'; ctx.fillText(txt,q[0]+(dx||0),q[1]+(dy||0)); }
+function tick(p,dir,color,txt,side){ const n=norm(dir)||1; const perp=[-dir[1]/n,dir[0]/n]; const h=0.1;
+  seg(add(p,mul(perp,h)),add(p,mul(perp,-h)),color,2); if(txt) label(txt,add(p,mul(perp,side*0.16)),color,-8,4); }
+function arrow(p,dir,color){ const n=norm(dir)||1; const u=mul(dir,1/n), perp=[-u[1],u[0]];
+  const A=toPx(p), B=toPx(add(add(p,mul(u,-0.22)),mul(perp,0.1))), Cc=toPx(add(add(p,mul(u,-0.22)),mul(perp,-0.1)));
+  ctx.fillStyle=color; ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.lineTo(Cc[0],Cc[1]); ctx.closePath(); ctx.fill(); }
+function polyline(pts,color,width,dash){ if(pts.length<2) return; ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash||[]); ctx.lineJoin='round'; ctx.beginPath();
+  pts.forEach((p,i)=>{ const q=toPx(p); if(i===0) ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]); }); ctx.stroke(); ctx.restore(); }
+
+function draw(){
+  compute();
+  ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,W,W);
+  ctx.strokeStyle=css('--grid'); ctx.lineWidth=1;
+  for(let i=-R;i<=R;i++){ const p=toPx([i,i]); ctx.beginPath(); ctx.moveTo(p[0],0); ctx.lineTo(p[0],W); ctx.moveTo(0,p[1]); ctx.lineTo(W,p[1]); ctx.stroke(); }
+  ctx.strokeStyle=css('--axis'); const o=toPx([0,0]); ctx.beginPath(); ctx.moveTo(o[0],0); ctx.lineTo(o[0],W); ctx.moveTo(0,o[1]); ctx.lineTo(W,o[1]); ctx.stroke();
+  const pal=PAL();
+  S.lines.forEach((l,i)=>{ const col=pal[i%pal.length]; drawObs(C.O[i],l,col,2);
+    const mid=mul(add(l.p,l.q),.5); label(String(i+1),add(mid,mul(C.O[i].a,0.35)),col,-4,4,true); });
+  if(S.newLine&&C.nO){ drawObs(C.nO,S.newLine,css('--new'),2.5,[8,5]); const mid=mul(add(S.newLine.p,S.newLine.q),.5); label('new',add(mid,mul(C.nO.a,0.4)),css('--new'),-10,4,true); }
+  if(C.singular){ label('degenerate: observations all parallel',[-4.5,4.5],css('--new'),0,0,true); drawHandles(); return; }
+  const xs=C.xs;
+  if(C.curve){
+    const curveCol=css('--curve'), tanCol=css('--tan');
+    // tangents (extended both ways to the plane edge)
+    const ext=(v)=>{ const n=norm(v)||1e-9; return [add(xs,mul(v,-30/n)),add(xs,mul(v,30/n))]; };
+    if(norm(C.vL)>1e-9&&S.lam>0){ const [A,B]=ext(C.vL); seg(A,B,css('--damp'),1.5,[3,5]); }
+    if(norm(C.vG)>1e-9){ const [A,B]=ext(C.vG); seg(A,B,css('--gn'),1.5,[6,5]); }
+    if(norm(C.vH)>1e-9){ const [A,B]=ext(C.vH); seg(A,B,tanCol,1.5); }
+    // response curve
+    polyline(C.curve.map(p=>p.x),curveCol,3.5);
+    // endpoint arrow at infinity
+    const last=C.pos[C.pos.length-1].x, prev=C.pos[Math.max(0,C.pos.length-6)].x;
+    arrow(last,sub(last,prev),curveCol); label('ε→∞',last,curveCol,8,-6,true);
+    // pole marker
+    const first=C.curve[0].x; if(norm(first)<R*1.6){ label('ε→'+f2(C.pole),first,curveCol,8,14); }
+    // ticks on curve and on tangent
+    TICKS.forEach(e=>{
+      if(e<C.epsMinCurve) return;
+      const p=C.at(e); const dir=sub(C.at(e+0.01),C.at(e-0.01));
+      if(norm(p)<R*1.4) tick(p,dir,curveCol,String(e).replace('-','−'),1);
+      const lp=add(xs,mul(C.vH,e)); if(norm(lp)<R*1.4) circle(lp,4,null,tanCol,1.5);
+    });
+    // scrubber
+    const eps=sliderToEps(S.epsIdx);
+    const xe=isFinite(eps)?C.at(eps):C.xinf;
+    circle(xe,6,css('--new'),css('--surface'),1.5);
+    if(isFinite(eps)){ const lp=add(xs,mul(C.vH,eps)); if(norm(lp)<R*1.5) circle(lp,6,null,css('--new'),2); }
+  }
+  circle(xs,5.5,css('--text'),css('--surface'),1.5); label('x*',xs,css('--text'),8,-8,true);
+  drawHandles();
+  updateSide(); drawPlot();
+}
+function drawHandles(){
+  const items=S.lines.map((l,i)=>({l,col:PAL()[i%7]})); if(S.newLine) items.push({l:S.newLine,col:css('--new')});
+  items.forEach(({l,col})=>{ circle(l.p,6,css('--surface'),col,2); circle(l.q,6,css('--surface'),col,2); });
+}
+
+// ---------- side info ----------
+function updateSide(){
+  const eps=sliderToEps(S.epsIdx);
+  $('epsVal').textContent=isFinite(eps)?f2(eps):'∞';
+  $('kapVal').textContent=S.kap.toFixed(3)+(S.kap>0?'  (radius '+(1/S.kap).toFixed(1)+')':'');
+  $('lamVal').textContent=S.lam.toFixed(2);
+  if(!C.curve){ $('stats').innerHTML=''; $('tbl').innerHTML=''; return; }
+  $('tkL').textContent='pole ≈ '+f2(C.pole);
+  const s=isFinite(eps)?eps/(1+eps*C.q):1/C.q;
+  const xe=isFinite(eps)?C.at(eps):C.xinf, lin=isFinite(eps)?add(C.xs,mul(C.vH,eps)):null;
+  $('stats').innerHTML=
+    `<span class="stat">q = aᵀH⁻¹a = <b>${f3(C.q)}</b></span>`+
+    `<span class="stat">pole (linear theory −1/q) = <b>${f3(-1/C.q)}</b>, found by continuation <b>${f2(C.pole)}</b></span>`+
+    `<span class="stat">effective weight s(ε)=ε/(1+εq) = <b>${f3(s)}</b></span>`+
+    `<span class="stat">r_new at x* = <b>${f3(C.rn)}</b></span>`+
+    (S.kap>0?`<span class="stat">angle between exact and Gauss‑Newton tangents = <b>${(Math.acos(Math.min(1,Math.abs(dot(C.vH,C.vG))/(norm(C.vH)*norm(C.vG)||1e-9)))*180/Math.PI).toFixed(1)}°</b></span>`:`<span class="stat">κ = 0: exact and Gauss‑Newton Hessians coincide</span>`);
+  let rows=`<tr><th>at the scrubber ε = ${isFinite(eps)?f2(eps):'∞'}</th><th>x₁</th><th>x₂</th><th>distance from x*</th></tr>`;
+  rows+=`<tr><td>exact x(ε)</td><td>${f3(xe[0])}</td><td>${f3(xe[1])}</td><td>${f3(norm(sub(xe,C.xs)))}</td></tr>`;
+  if(lin) rows+=`<tr><td>first order x* + ε·dx/dε</td><td>${f3(lin[0])}</td><td>${f3(lin[1])}</td><td>${f3(norm(sub(lin,C.xs)))}</td></tr>`;
+  if(lin) rows+=`<tr><td>overshoot factor (linear theory 1+εq)</td><td colspan="3">${f3(norm(sub(lin,C.xs))/(norm(sub(xe,C.xs))||1e-9))} &nbsp;<span class="dim">vs ${f3(1+eps*C.q)}</span></td></tr>`;
+  $('tbl').innerHTML=rows;
+}
+
+// ---------- eps plot ----------
+const pl=$('pl'), pctx=pl.getContext('2d'); let PW=600,PH=340;
+function resizePlot(){ const rect=pl.getBoundingClientRect(); PW=Math.max(200,Math.floor(rect.width)); PH=Math.max(160,Math.floor(rect.height)); pl.width=Math.floor(PW*DPR); pl.height=Math.floor(PH*DPR); }
+function measure(x){
+  const m=S.meas;
+  if(m==='x0') return x[0]; if(m==='x1') return x[1];
+  if(m==='loss') return C.O.reduce((s,o)=>s+0.5*res(o,x).r**2,0);
+  const i=+m[1]; return C.O[i]?res(C.O[i],x).r:0;
+}
+function measureLin(eps){ // first-order: m(x*) + eps * grad m · dx/deps
+  const h=1e-5; const d=(measure(add(C.xs,mul(C.vH,h)))-measure(sub(C.xs,mul(C.vH,h))))/(2*h); return measure(C.xs)+eps*d; }
+function drawPlot(){
+  pctx.setTransform(DPR,0,0,DPR,0,0); pctx.clearRect(0,0,PW,PH);
+  if(!C.curve) return;
+  const L=54,Rm=70,T=18,Bm=40; const x0=Math.max(C.epsMinCurve,-6), x1=8;
+  const pts=C.curve.filter(p=>p.eps>=x0&&p.eps<=x1).map(p=>[p.eps,measure(p.x)]);
+  const minf=measure(C.xinf);
+  const lin=[[x0,measureLin(x0)],[x1,measureLin(x1)]];
+  let ys=pts.map(p=>p[1]).concat([minf]); const span=Math.max(1e-6,Math.max(...ys)-Math.min(...ys));
+  const linClip=lin.map(p=>p[1]).filter(v=>Math.abs(v-minf)<3*span+1); ys=ys.concat(linClip);
+  let ylo=Math.min(...ys), yhi=Math.max(...ys); const pad=(yhi-ylo||1)*0.12; ylo-=pad; yhi+=pad;
+  const X=e=>L+(e-x0)/(x1-x0)*(PW-L-Rm), Y=v=>T+(yhi-v)/(yhi-ylo)*(PH-T-Bm);
+  // axes
+  pctx.strokeStyle=css('--axis'); pctx.lineWidth=1; pctx.beginPath(); pctx.moveTo(L,T); pctx.lineTo(L,PH-Bm); pctx.lineTo(PW-Rm,PH-Bm); pctx.stroke();
+  pctx.fillStyle=css('--text-2'); pctx.font='12px -apple-system,Segoe UI,Roboto,sans-serif'; pctx.textAlign='center';
+  for(let e=Math.ceil(x0);e<=x1;e++){ const xx=X(e); pctx.strokeStyle=css('--grid'); pctx.beginPath(); pctx.moveTo(xx,T); pctx.lineTo(xx,PH-Bm); pctx.stroke(); pctx.fillText(String(e).replace('-','−'),xx,PH-Bm+16); }
+  pctx.fillText('ε',(L+PW-Rm)/2,PH-6);
+  pctx.textAlign='right'; const nT=5; for(let k=0;k<=nT;k++){ const v=ylo+(yhi-ylo)*k/nT; pctx.fillText(v.toFixed(2).replace('-','−'),L-6,Y(v)+4); }
+  // zero line for eps
+  pctx.strokeStyle=css('--axis'); pctx.setLineDash([2,4]); pctx.beginPath(); pctx.moveTo(X(0),T); pctx.lineTo(X(0),PH-Bm); pctx.stroke();
+  // asymptotes
+  pctx.strokeStyle=css('--curve'); pctx.setLineDash([5,5]); pctx.lineWidth=1;
+  pctx.beginPath(); pctx.moveTo(L,Y(minf)); pctx.lineTo(PW-Rm,Y(minf)); pctx.stroke();
+  pctx.textAlign='left'; pctx.fillStyle=css('--curve'); pctx.fillText('ε→∞: '+minf.toFixed(3),PW-Rm+6,Y(minf)+4);
+  if(C.pole>x0-0.5){ const xp=X(Math.max(C.pole,x0)); pctx.beginPath(); pctx.moveTo(xp,T); pctx.lineTo(xp,PH-Bm); pctx.stroke(); pctx.textAlign='left'; pctx.fillText('pole',xp+4,T+12); }
+  pctx.setLineDash([]);
+  // clip region
+  pctx.save(); pctx.beginPath(); pctx.rect(L,T,PW-L-Rm,PH-T-Bm); pctx.clip();
+  // linear
+  pctx.strokeStyle=css('--tan'); pctx.lineWidth=1.8; pctx.beginPath(); pctx.moveTo(X(lin[0][0]),Y(lin[0][1])); pctx.lineTo(X(lin[1][0]),Y(lin[1][1])); pctx.stroke();
+  // exact
+  pctx.strokeStyle=css('--curve'); pctx.lineWidth=3; pctx.lineJoin='round'; pctx.beginPath(); pts.forEach((p,i)=>{ if(i===0) pctx.moveTo(X(p[0]),Y(p[1])); else pctx.lineTo(X(p[0]),Y(p[1])); }); pctx.stroke();
+  // scrubber
+  const eps=sliderToEps(S.epsIdx);
+  if(isFinite(eps)&&eps>=x0&&eps<=x1){ const xe=C.at(eps); pctx.fillStyle=css('--new'); pctx.beginPath(); pctx.arc(X(eps),Y(measure(xe)),5,0,Math.PI*2); pctx.fill();
+    pctx.strokeStyle=css('--new'); pctx.lineWidth=2; pctx.beginPath(); pctx.arc(X(eps),Y(measureLin(eps)),5,0,Math.PI*2); pctx.stroke(); }
+  pctx.restore();
+  // legend
+  pctx.textAlign='left'; pctx.font='12px -apple-system,Segoe UI,Roboto,sans-serif';
+  pctx.fillStyle=css('--curve'); pctx.fillText('exact',L+10,T+14); pctx.fillStyle=css('--tan'); pctx.fillText('first order',L+52,T+14);
+}
+
+// ---------- interaction ----------
+let drag=null;
+function pickHandle(w){ const items=S.lines.map((l,i)=>({l,i})); if(S.newLine) items.push({l:S.newLine,i:-1});
+  for(const it of items){ for(const k of ['p','q']){ if(norm(sub(it.l[k],w))<0.28) return {l:it.l,k}; } } return null; }
+function evPos(e){ const r=cv.getBoundingClientRect(); return toW([(e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*W]); }
+cv.addEventListener('pointerdown',e=>{ const w=evPos(e); const h=pickHandle(w); cv.setPointerCapture(e.pointerId);
+  if(h) drag={type:'handle',...h}; else { S.newLine={p:w,q:w}; drag={type:'draw'}; } draw(); });
+cv.addEventListener('pointermove',e=>{ if(!drag) return; const w=evPos(e);
+  if(drag.type==='handle') drag.l[drag.k]=w; else if(drag.type==='draw'&&S.newLine) S.newLine.q=w; draw(); });
+cv.addEventListener('pointerup',()=>{ if(drag&&drag.type==='draw'&&S.newLine&&norm(sub(S.newLine.q,S.newLine.p))<0.15) S.newLine=DEFAULT_NEW(); drag=null; draw(); });
+$('eps').addEventListener('input',e=>{ S.epsIdx=+e.target.value; draw(); });
+$('kap').addEventListener('input',e=>{ S.kap=+e.target.value; draw(); });
+$('lam').addEventListener('input',e=>{ S.lam=+e.target.value; draw(); });
+$('meas').addEventListener('change',e=>{ S.meas=e.target.value; draw(); });
+function randomLine(){ const c=[rnd(-3,3),rnd(-3,3)], th=rnd(0,Math.PI), Lh=rnd(2.5,4); const d=[Math.cos(th)*Lh,Math.sin(th)*Lh]; return {p:sub(c,d),q:add(c,d)}; }
+$('btnRandomNew').addEventListener('click',()=>{ S.newLine=randomLine(); draw(); });
+$('btnRandomize').addEventListener('click',()=>{ S.lines=S.lines.map(randomLine); draw(); });
+$('btnReset').addEventListener('click',()=>{ S.lines=DEFAULT_LINES(); S.newLine=DEFAULT_NEW(); S.kap=0; S.lam=0; S.epsIdx=500; $('kap').value=0; $('lam').value=0; $('eps').value=500; draw(); });
+window.addEventListener('resize',resize);
+if(window.matchMedia){ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw); }
+resize();
+})();
+</script>
+</body>
+</html>
