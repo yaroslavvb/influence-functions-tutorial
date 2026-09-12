@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Price of Influence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script>
+window.MathJax = { tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$']] },
+                   svg: { fontCache: 'global' }, options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f5f6f3; --paper:#fbfbf9; --well:#ecEEe8; --line:#d6d9d0; --line-2:#c1c5ba;
+  --ink:#141715; --ink-2:#464b45; --mute:#737a70;
+  --math:#1c6e57; --math-soft:#dcefe6;
+  --bill:#a8451c; --bill-soft:#f4e2d7;
+  --focus:#1c6e57;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#151816; --paper:#1b1f1c; --well:#232824; --line:#333934; --line-2:#454c46;
+    --ink:#e9eae4; --ink-2:#bdc1b8; --mute:#868c83;
+    --math:#5cc39d; --math-soft:#1f3a30;
+    --bill:#e5865b; --bill-soft:#3f2a20;
+    --focus:#5cc39d;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#151816; --paper:#1b1f1c; --well:#232824; --line:#333934; --line-2:#454c46;
+  --ink:#e9eae4; --ink-2:#bdc1b8; --mute:#868c83;
+  --math:#5cc39d; --math-soft:#1f3a30;
+  --bill:#e5865b; --bill-soft:#3f2a20;
+  --focus:#5cc39d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,"Times New Roman",serif;font-size:17px;line-height:1.6;
+  font-optical-sizing:auto}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:20px;padding-block:28px 96px}
+h1,h2,h3{font-family:"IBM Plex Sans Condensed","Helvetica Neue",Arial,sans-serif;text-wrap:balance;letter-spacing:-.005em}
+h1{font-size:clamp(2.2rem,5vw,3.4rem);font-weight:600;line-height:1.05;margin:.3em 0 .25em}
+h2{font-size:1.65rem;font-weight:600;margin:2.6em 0 .6em;padding-top:.9em;border-top:2px solid var(--line-2)}
+h3{font-size:1.15rem;font-weight:600;margin:1.6em 0 .4em}
+p,li{max-width:68ch}
+p{margin:.7em 0}
+.lead{font-size:1.15rem;color:var(--ink-2);max-width:62ch}
+a{color:var(--math);text-decoration-thickness:1px;text-underline-offset:2px}
+.eyebrow{font-family:"IBM Plex Mono",Menlo,monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.eyebrow.math{color:var(--math)} .eyebrow.bill{color:var(--bill)}
+code,.mono{font-family:"IBM Plex Mono",Menlo,Consolas,monospace;font-size:.9em}
+code{background:var(--well);padding:1px 5px;border-radius:3px}
+mjx-container[display="true"]{overflow-x:auto;overflow-y:hidden;padding:4px 0;margin:.6em 0!important}
+mjx-container{color:var(--ink)}
+
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:22px 0 6px}
+.guide a{display:block;padding:12px 14px;border:1px solid var(--line);background:var(--paper);text-decoration:none;color:var(--ink)}
+.guide a b{display:block;font-family:"IBM Plex Sans Condensed",sans-serif;font-size:1.02rem;margin-bottom:2px}
+.guide a span{color:var(--ink-2);font-size:.92rem}
+.guide a:hover{border-color:var(--math)}
+
+.aside{border-left:3px solid var(--math);background:var(--math-soft);padding:10px 16px;margin:18px 0;max-width:68ch}
+.aside.bill{border-left-color:var(--bill);background:var(--bill-soft)}
+.aside p{margin:.35em 0}
+
+.pictures{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:18px 0}
+.pic{background:var(--paper);border:1px solid var(--line);padding:14px 16px}
+.pic h4{margin:0 0 6px;font-family:"IBM Plex Sans Condensed",sans-serif;font-size:1.05rem;font-weight:600}
+.pic p{margin:.4em 0;font-size:.97rem}
+
+/* widgets */
+.widget{background:var(--paper);border:1px solid var(--line);padding:18px 20px;margin:20px 0}
+.widget h4{margin:0 0 4px;font-family:"IBM Plex Sans Condensed",sans-serif;font-size:1.1rem;font-weight:600}
+.widget .sub{color:var(--ink-2);font-size:.93rem;margin:0 0 12px;max-width:68ch}
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 18px;margin:8px 0 14px}
+.ctrl label{display:flex;justify-content:space-between;align-items:baseline;font-family:"IBM Plex Mono",Menlo,monospace;font-size:.82rem;color:var(--ink-2)}
+.ctrl label output{color:var(--ink);font-weight:500}
+.ctrl input[type=range]{width:100%;accent-color:var(--math);margin:4px 0 0}
+.ctrl input[type=number]{width:100%;font:inherit;font-family:"IBM Plex Mono",Menlo,monospace;font-size:.9rem;padding:5px 7px;border:1px solid var(--line-2);border-radius:3px;background:var(--well);color:var(--ink)}
+.ctrl input:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.ctrl small{display:block;color:var(--mute);font-size:.76rem;line-height:1.3;margin-top:3px;font-family:"Source Serif 4",serif}
+
+.tbl{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th{font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.02em;color:var(--ink-2);text-align:right}
+td:first-child,th:first-child{text-align:left}
+td.l,th.l{text-align:left}
+td .num{font-family:"IBM Plex Mono",Menlo,monospace;font-size:.86rem;white-space:nowrap}
+td .why{display:block;color:var(--mute);font-size:.82rem;line-height:1.35;max-width:30ch}
+tr.total td{border-top:2px solid var(--line-2);font-weight:600}
+tr.hi td{background:var(--bill-soft)}
+.pill{display:inline-block;font-family:"IBM Plex Mono",Menlo,monospace;font-size:.72rem;letter-spacing:.04em;padding:1px 7px;border:1px solid var(--line-2);border-radius:2px;color:var(--ink-2);margin-left:6px;vertical-align:middle}
+.win{color:var(--math);font-weight:600} .lose{color:var(--bill);font-weight:600}
+
+.steps{counter-reset:s;margin:20px 0;display:flex;flex-direction:column;gap:0}
+.step{display:grid;grid-template-columns:56px 1fr;gap:0 16px;padding:18px 0;border-top:1px solid var(--line)}
+.step:last-child{border-bottom:1px solid var(--line)}
+.step .n{counter-increment:s;font-family:"IBM Plex Sans Condensed",sans-serif;font-weight:600;font-size:2rem;line-height:1;color:var(--bill);padding-top:2px}
+.step .n::before{content:counter(s,decimal-leading-zero)}
+.step h3{margin:0 0 4px}
+.step .cost{font-family:"IBM Plex Mono",Menlo,monospace;font-size:.82rem;color:var(--bill);margin:2px 0 8px}
+.step p{margin:.5em 0}
+@media (max-width:560px){.step{grid-template-columns:1fr}.step .n{font-size:1.4rem}}
+
+.takeaways{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.take{background:var(--paper);border-top:3px solid var(--bill);padding:12px 14px}
+.take b{display:block;font-family:"IBM Plex Sans Condensed",sans-serif;font-size:1.05rem;margin-bottom:4px}
+.take p{margin:.3em 0;font-size:.95rem}
+
+ol.refs{padding-left:1.4em;font-size:.93rem}
+ol.refs li{margin:.35em 0;max-width:80ch}
+footer{margin-top:60px;color:var(--mute);font-size:.86rem;border-top:1px solid var(--line);padding-top:14px}
+@media (prefers-reduced-motion: no-preference){ .guide a,.pic{transition:border-color .15s} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<p class="eyebrow">Influence functions for large language models</p>
+<h1>The Price of Influence</h1>
+<p class="lead">Influence functions promise to say which training examples made a model behave the way it does. The formula is one line long and contains an inverse Hessian. This page derives that line, explains why the inverse is not optional, and then prices every step of using it on a model the size of Llama‑3‑8B.</p>
+
+<div class="guide">
+  <a href="#question"><b>1. The question</b><span>What quantity an influence function is, exactly.</span></a>
+  <a href="#why"><b>2. Why the inverse Hessian</b><span>The derivation and four ways to picture it, with a toy you can adjust.</span></a>
+  <a href="#practice"><b>3. Making it invertible</b><span>Gauss‑Newton, damping, EK‑FAC, iterative solves.</span></a>
+  <a href="#bill"><b>4. The bill</b><span>Five steps, each costed, with a live calculator.</span></a>
+</div>
+<p class="eyebrow" style="margin-top:10px">Companion: <a href="https://yaroslavvb.github.io/influence-functions-tutorial/">Influence Functions, the Kaczmarz Way</a>, the same formulas in two dimensions where everything can be drawn.</p>
+
+<h2 id="question">1. The question an influence function answers</h2>
+<p>A model with parameters $\theta\in\mathbb R^P$ is trained on examples $z_1,\dots,z_N$ by minimizing an average loss,
+$$\theta^\star=\arg\min_\theta J(\theta),\qquad J(\theta)=\frac1N\sum_{i=1}^N L(z_i,\theta).$$
+Pick one training example $z_m$ and give it a little extra weight $\varepsilon$:
+$$\theta^\star(\varepsilon)=\arg\min_\theta\; J(\theta)+\varepsilon\,L(z_m,\theta).$$
+This curve through parameter space is the <em>response function</em>. At $\varepsilon=0$ it is the model we have; at $\varepsilon=-1/N$ it is, to first order, the model trained without $z_m$.</p>
+<p>Pick also a <em>measurement</em> $f(\theta)$, a scalar you care about. For a language model the standard choice is the log‑probability of a completion given a prompt, $f(\theta)=\log p_\theta(\text{completion}\mid\text{prompt})$. The influence of $z_m$ on $f$ is the slope of the measurement along the response curve:
+$$\mathcal I_f(z_m)=\frac{d}{d\varepsilon}\,f\big(\theta^\star(\varepsilon)\big)\Big|_{\varepsilon=0}.$$
+Positive influence means more of $z_m$ would push the completion's log‑probability up. Ranking the training set by this number is what "finding the examples responsible for a behavior" means in practice.</p>
+<p>Nothing so far mentions a Hessian. It appears the moment we try to compute the slope without retraining.</p>
+
+<h2 id="why">2. Why the inverse Hessian</h2>
+<p class="eyebrow math">Derivation</p>
+<p>The minimizer $\theta^\star(\varepsilon)$ is defined implicitly by the stationarity condition, which holds for every $\varepsilon$:
+$$\nabla J\big(\theta^\star(\varepsilon)\big)+\varepsilon\,\nabla L\big(z_m,\theta^\star(\varepsilon)\big)=0 .$$
+Differentiate both sides with respect to $\varepsilon$ and evaluate at $\varepsilon=0$. The chain rule turns $\nabla J$ into its Jacobian, the Hessian $H=\nabla^2 J(\theta^\star)$, times the velocity of the curve:
+$$H\,\frac{d\theta^\star}{d\varepsilon}\Big|_0+\nabla L(z_m,\theta^\star)=0
+\quad\Longrightarrow\quad
+\frac{d\theta^\star}{d\varepsilon}\Big|_0=-\,H^{-1}\,\nabla L(z_m,\theta^\star).$$
+One more chain rule gives the influence on the measurement:
+$$\boxed{\;\mathcal I_f(z_m)=-\,\nabla f(\theta^\star)^{\!\top}\,H^{-1}\,\nabla L(z_m,\theta^\star)\;}$$
+That is the whole formula (Cook 1977 for statistics; Koh and Liang 2017 for deep networks). The inverse Hessian is the Jacobian of the implicit function theorem: it converts a change in the <em>objective</em> into the change in the <em>minimizer</em>.</p>
+
+<p class="eyebrow math">Four ways to see what $H^{-1}$ is doing</p>
+<div class="pictures">
+  <div class="pic"><h4>Springs and compliance</h4>
+    <p>$J$ is a potential energy well and $\theta^\star$ rests at its bottom. The rest of the training data acts like springs holding $\theta$ in place, and $H$ is their stiffness matrix. Upweighting $z_m$ applies a force $-\nabla L_m$. Hooke's law with a matrix says the equilibrium moves by force divided by stiffness, $H^{-1}(-\nabla L_m)$. A plain gradient dot product pretends every direction has stiffness one.</p></div>
+  <div class="pic"><h4>A dot product in whitened coordinates</h4>
+    <p>Write $H^{-1}=H^{-1/2}H^{-1/2}$. Then $\mathcal I_f=-\langle H^{-1/2}\nabla f,\;H^{-1/2}\nabla L_m\rangle$: the ordinary dot product after both gradients are rescaled by the curvature. Directions in which nearly every training example pushes (frequent tokens, the bulk of the gradient distribution) have huge curvature and get shrunk. What survives is the part of $\nabla L_m$ that is <em>distinctive</em>. Without the whitening, the ranking is dominated by generic, high‑gradient‑norm examples that look influential for everything.</p></div>
+  <div class="pic"><h4>A Newton step, not an SGD step</h4>
+    <p>An SGD step on $z_m$ moves $\theta$ by $-\eta\nabla L_m$, straight along the new gradient. The influence step moves by $-H^{-1}\nabla L_m$, which is where the equilibrium lands <em>after all the other data has pushed back</em>. In the 2‑D companion page these are two different projections onto the same line: orthogonal in the Euclidean metric versus orthogonal in the metric $H$.</p></div>
+  <div class="pic"><h4>Where the signal lives</h4>
+    <p>The flattest directions of $H$ are the ones the data barely constrains, so a small push there moves the model a lot. Wang et al. (2025) bin the eigenvalues of the curvature and show that attribution quality keeps improving as lower and lower curvature bins are solved accurately. Methods that keep only a top subspace throw that signal away, and so does an iterative solver that stops early.</p></div>
+</div>
+
+<div class="widget" id="toy">
+  <h4>Toy: two directions, one query, two candidates</h4>
+  <p class="sub">Two parameter directions with curvatures $\sigma_1$ (stiff, well determined by the data) and $\sigma_2$ (flat). The query gradient is $\nabla f=(1,1)$. Candidate A has gradient $(1,0)$, entirely in the stiff direction. Candidate B has gradient $(0,\,0.1)$, ten times smaller and entirely in the flat direction. Damping $\lambda$ replaces $H^{-1}$ by $(H+\lambda I)^{-1}$.</p>
+  <div class="ctrls">
+    <div class="ctrl"><label for="s1">stiff curvature σ₁ <output id="s1v"></output></label><input type="range" id="s1" min="0" max="4" step="0.05" value="2"></div>
+    <div class="ctrl"><label for="s2">flat curvature σ₂ <output id="s2v"></output></label><input type="range" id="s2" min="-4" max="0" step="0.05" value="-2"></div>
+    <div class="ctrl"><label for="lam">damping λ <output id="lamv"></output></label><input type="range" id="lam" min="-5" max="1" step="0.05" value="-5"></div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th class="l">Score</th><th>Candidate A (1, 0)</th><th>Candidate B (0, 0.1)</th><th>Which ranks first</th></tr></thead>
+    <tbody>
+      <tr><td class="l">Plain gradient dot product $\nabla f^{\top}\nabla L_m$</td><td><span class="num" id="dA"></span></td><td><span class="num" id="dB"></span></td><td id="dW"></td></tr>
+      <tr><td class="l">Influence $\nabla f^{\top}(H+\lambda I)^{-1}\nabla L_m$</td><td><span class="num" id="iA"></span></td><td><span class="num" id="iB"></span></td><td id="iW"></td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub" id="toyNote" style="margin-top:8px"></p>
+</div>
+
+<h2 id="practice">3. From $H^{-1}$ to something you can compute</h2>
+<p>Three things stand between the boxed formula and a working system.</p>
+<h3>$H$ is too big to form, and not even positive definite</h3>
+<p>With $P$ parameters the Hessian has $P^2$ entries. For $P=8\times10^9$ that is $6.4\times10^{19}$ numbers, about 250 exabytes in single precision. Its eigenvalues also include zeros and negatives at any real checkpoint, so $H^{-1}$ does not exist as written. Practice replaces $H$ by the Gauss‑Newton Hessian $G$ (the Fisher information for log‑loss with labels sampled from the model), which is positive semidefinite, and adds damping:
+$$\mathcal I_f(z_m)\approx-\,\nabla f^{\top}(G+\lambda I)^{-1}\nabla L(z_m).$$
+Bae et al. (2022) show this is not a hack but the exact answer to a slightly different question: it is the derivative of the <em>proximal Bregman response function</em>, which stays well defined for non‑convex, non‑converged models. Damping caps the amplification of any direction at $1/\lambda$. The toy above shows the effect: raise $\lambda$ past $\sigma_2$ and candidate B's advantage collapses. Choosing $\lambda$ is therefore choosing how far into the flat tail you trust the linearization. Grosse et al. (2023) used one tenth of the mean eigenvalue; Wang et al. (2025) derive it from the training run as $1/(\eta K)$, where $\eta$ is the learning rate and $K$ the number of steps, because $K$ steps at rate $\eta$ can only have converged the directions with curvature above that scale.</p>
+
+<h3>$G$ needs structure to be inverted</h3>
+<p>Kronecker‑factored approximate curvature (K‑FAC) treats layers as independent and, within a linear layer $y=Wx$, assumes the input activations $a$ and output backpropagated gradients $g$ are independent, so the layer's block factors as $G_\ell\approx A\otimes B$ with $A=\mathbb E[aa^\top]$ and $B=\mathbb E[gg^\top]$. Eigenvalue‑corrected K‑FAC (EK‑FAC) keeps the Kronecker eigenbasis but fits the eigenvalues $\Lambda$ directly from data, which fixes most of the bias in the spectrum. The inverse is then a rotate, an elementwise divide, and a rotate back:
+$$(G_\ell+\lambda I)^{-1}\operatorname{vec}(V)=\operatorname{vec}\!\Big(Q_B\big[(Q_B^{\top}VQ_A)\oslash(\Lambda+\lambda)\big]Q_A^{\top}\Big).$$
+For a layer of shape $b\times a$ that costs about $4ab(a+b)$ multiply‑adds per vector, comparable to a forward pass through the layer. The factors are computed once per checkpoint and shared by every query.</p>
+
+<h3>Or solve the linear system iteratively</h3>
+<p>Alternatively, never form $G$: solve $(G+\lambda I)\,v=\nabla f$ with an iterative method that only needs matrix‑vector products, each of which costs about one forward‑plus‑backward pass on a mini‑batch. Conjugate gradient does not tolerate stochastic products, so the field uses Neumann iterations (LiSSA). Unpreconditioned, the flattest directions shrink by only about $1-\lambda/\sigma_{\max}$ per step, so convergence takes on the order of $\sigma_{\max}/\lambda$ iterations, routinely $10^3$ to $10^6$. Stopping after $J$ steps at step size $\alpha$ is equivalent to raising the damping by $1/(\alpha J)$, silently, and exactly in the directions that carry signal.</p>
+<p>ASTRA (Wang et al. 2025) combines the two: initialize at the EK‑FAC answer and precondition the Neumann iteration with the EK‑FAC inverse. One step reproduces EK‑FAC exactly; a few hundred more remove its structural bias. The fixed point is the true damped inverse‑Hessian‑vector product regardless of how crude the preconditioner is. Measured against real retraining, that bias turns out to matter: on a convolutional network the linear datamodeling score rose from about 0.25 to about 0.6.</p>
+
+<h2 id="bill">4. The bill: five steps, costed</h2>
+<p>Everything below is priced in one unit, the cost of computing a gradient for one training sequence of $T$ tokens through a model with $P$ parameters: about $2PT$ floating‑point operations forward and $4PT$ backward, so
+$$C_g\approx 6\,P\,T\ \text{FLOPs}.$$
+Hardware is expressed in H100‑hours at a peak of 989 TFLOP/s in bf16 with 40% utilization, roughly $4\times10^{14}$ FLOP/s sustained. The worked example is a Llama‑3‑8B‑shaped model: 32 blocks, width 4096, MLP hidden width 14336, influence computed over the MLP weights as in Grosse et al. (2023). Every number in this section is recomputed from the calculator, so change the assumptions and the tables follow.</p>
+
+<div class="widget" id="calc">
+  <h4>Assumptions</h4>
+  <p class="sub">Defaults are the worked example. Sequence and candidate counts are per <em>batch</em> of queries; a batch shares one training‑set scan.</p>
+  <div class="ctrls">
+    <div class="ctrl"><label for="P">parameters P (billions)</label><input type="number" id="P" value="8" step="1" min="0.1"><small>full model; gradients must be backpropagated through all of it</small></div>
+    <div class="ctrl"><label for="T">tokens per sequence T</label><input type="number" id="T" value="2048" step="256" min="1"></div>
+    <div class="ctrl"><label for="L">transformer blocks</label><input type="number" id="L" value="32" step="1" min="1"></div>
+    <div class="ctrl"><label for="d">model width d</label><input type="number" id="d" value="4096" step="256" min="1"></div>
+    <div class="ctrl"><label for="h">MLP hidden width</label><input type="number" id="h" value="14336" step="256" min="1"><small>three d×h matrices per block (gate, up, down)</small></div>
+    <div class="ctrl"><label for="Q">queries per batch Q</label><input type="number" id="Q" value="100" step="10" min="1"></div>
+    <div class="ctrl"><label for="S">sequences for curvature statistics S</label><input type="number" id="S" value="10000" step="1000" min="1"></div>
+    <div class="ctrl"><label for="J">ASTRA iterations J</label><input type="number" id="J" value="300" step="50" min="1"></div>
+    <div class="ctrl"><label for="B">ASTRA mini‑batch (sequences)</label><input type="number" id="B" value="32" step="8" min="1"></div>
+    <div class="ctrl"><label for="N">candidate sequences scanned N</label><input type="number" id="N" value="10000000" step="1000000" min="1"><small>Grosse et al. scanned about 10⁷ after TF‑IDF prefiltering</small></div>
+    <div class="ctrl"><label for="D">full pretraining corpus (trillion tokens)</label><input type="number" id="D" value="15" step="1" min="0.01"></div>
+    <div class="ctrl"><label for="k">sketch dimension k</label><input type="number" id="k" value="4096" step="512" min="1"><small>per‑example compressed gradient, fp16</small></div>
+    <div class="ctrl"><label for="M">retrained models for validation</label><input type="number" id="M" value="300" step="50" min="1"><small>e.g. 100 half‑subsets × 3 seeds</small></div>
+    <div class="ctrl"><label for="Dft">tokens per validation retrain (millions)</label><input type="number" id="Dft" value="100" step="50" min="1"><small>fine‑tuning scale; pretraining scale is not retrainable</small></div>
+    <div class="ctrl"><label for="util">GPU utilization</label><input type="number" id="util" value="0.4" step="0.05" min="0.01" max="1"><small>fraction of 989 TFLOP/s</small></div>
+  </div>
+  <p class="sub">One sequence gradient <span class="num mono" id="Cg"></span> FLOPs, about <span class="num mono" id="CgT"></span> of H100 time. Full‑model gradient vector: <span class="num mono" id="gradBytes"></span> in fp32.</p>
+</div>
+
+<div class="steps">
+  <div class="step"><div class="n"></div><div>
+    <h3>Query gradients</h3>
+    <div class="cost">Q · C<sub>g</sub> &nbsp;=&nbsp; <span id="c1f"></span> FLOPs &nbsp;·&nbsp; <span id="c1t"></span></div>
+    <p>One forward and backward pass per query to get $\nabla f(\theta^\star)$. Negligible. The only real question is what $f$ should be: the log‑probability of the whole completion, or of one token, and whether to condition on the prompt. The choice changes which examples come back.</p>
+  </div></div>
+
+  <div class="step"><div class="n"></div><div>
+    <h3>Curvature estimation (EK‑FAC factors)</h3>
+    <div class="cost">≈ 3 · S · C<sub>g</sub> &nbsp;=&nbsp; <span id="c2f"></span> FLOPs &nbsp;·&nbsp; <span id="c2t"></span> &nbsp;·&nbsp; memory <span id="c2m"></span> factors + <span id="c2l"></span> eigenvalues</div>
+    <p>Run $S$ sequences with labels sampled from the model, accumulating $A=\mathbb E[aa^\top]$ and $B=\mathbb E[gg^\top]$ for every MLP matrix. Eigendecompose each factor (<span class="num mono" id="c2e"></span> FLOPs in total, negligible), then make a second pass to fit the corrected eigenvalues $\Lambda$. The multiply‑accumulates for the covariances cost about as much as the gradients themselves, hence the factor three.</p>
+    <p>Note the memory. A layer of shape $b\times a$ has $ab$ weights but its factors have $a^2+b^2$ entries. With $b=3.5a$ that is about 3.8 times the weights, so the EK‑FAC factors for the MLP layers are <em>larger than the model</em>. This is a fixed cost per checkpoint, shared by all queries.</p>
+  </div></div>
+
+  <div class="step"><div class="n"></div><div>
+    <h3>The inverse‑Hessian‑vector product</h3>
+    <div class="cost">EK‑FAC solve: Σ 4ab(a+b) &nbsp;=&nbsp; <span id="c3f"></span> FLOPs, <span id="c3t"></span> per query
+      <br>ASTRA: J·(2B·C<sub>g</sub> + solve) &nbsp;=&nbsp; <span id="c3af"></span> FLOPs, <span id="c3at"></span> per query &nbsp;·&nbsp; <span id="c3aq"></span> per batch of Q</div>
+    <p>With EK‑FAC alone the solve is a few dense matrix products per layer, about <span class="num mono" id="c3r"></span> sequence‑gradient equivalents. This is why Grosse et al. (2023) could treat the inverse as essentially free and point at the scan as the bottleneck.</p>
+    <p>ASTRA pays for accuracy with iterations. Each one is a Gauss‑Newton‑vector product on a mini‑batch, roughly two gradient computations per sequence, plus one EK‑FAC solve. At the default settings that is <span class="num mono" id="c3x"></span> times the EK‑FAC‑only cost. Still small next to the scan, but it becomes the dominant per‑query cost once the scan is replaced by a lookup (step 4). Memory is a handful of parameter‑sized vectors: the iterate, its momentum, the query gradient, and the preconditioned residual.</p>
+  </div></div>
+
+  <div class="step"><div class="n"></div><div>
+    <h3>Scoring the training set</h3>
+    <div class="cost">N · C<sub>g</sub> + N · Q · 2P &nbsp;=&nbsp; <span id="c4f"></span> FLOPs &nbsp;·&nbsp; <span id="c4t"></span> &nbsp;·&nbsp; <span id="c4g"></span> GPUs for one day</div>
+    <p>For every candidate sequence: a forward and backward pass to get its gradient, then a dot product with each query's inverse‑Hessian‑vector product. The dot products are <span class="num mono" id="c4dp"></span> of the total even with $Q$ queries sharing the pass. The gradient is the cost, and it is the same gradient the model computed during training.</p>
+    <p>That gives the cleanest statement of the problem. Scanning the whole pretraining corpus costs $6PD$ FLOPs, which is exactly the cost of pretraining: <span class="num mono" id="c4full"></span> FLOPs, <span class="num mono" id="c4fullt"></span>. Nobody does that per batch of queries, so the candidate set is shrunk first, by TF‑IDF prefiltering in the 2023 paper, or by scanning a random slice.</p>
+    <p>The obvious amortization is to store every training gradient once and answer each query with dot products. At <span class="num mono" id="c4store"></span> for the candidate set alone, that is not storable. Random projection to $k$ dimensions (TRAK, LoGra) brings it to <span class="num mono" id="c4sk"></span>, and a query becomes a $k$‑dimensional lookup over $N$ rows. The catch is that a dense projection of a $P$‑vector costs $2Pk$, about <span class="num mono" id="c4pr"></span> gradient‑equivalents per example, so the projection has to exploit the low‑rank structure of per‑layer gradients, and every published projection so far pays in retrieval quality. Grosse's team's current work is sketches with recall guarantees for the top influential examples; if that works, step 3 becomes the whole per‑query bill.</p>
+  </div></div>
+
+  <div class="step"><div class="n"></div><div>
+    <h3>Validation against retraining</h3>
+    <div class="cost">M · 6 · P · D<sub>ft</sub>/2 &nbsp;=&nbsp; <span id="c5f"></span> FLOPs &nbsp;·&nbsp; <span id="c5t"></span></div>
+    <p>The linear datamodeling score retrains the model on random half‑subsets of the data, several seeds each, and correlates the measured change in $f$ with the sum of predicted influences over the subset. At the scale above that is only affordable for a fine‑tuning run, and even then it costs as much as the scan. Grosse et al. (2023) instead validated against the proximal Bregman response function, the quantity the estimate approximates; Wang et al. (2025) used about 10,000 retrained small models and 1,000 GPT‑2 fine‑tunes. Every claim of the form "better curvature estimates give more sensible retrievals" rests on this step.</p>
+  </div></div>
+</div>
+
+<h3>The ledger</h3>
+<div class="tbl"><table id="ledger">
+  <thead><tr><th class="l">Step</th><th>FLOPs</th><th>H100‑hours</th><th>Paid</th><th>Scales with</th></tr></thead>
+  <tbody>
+    <tr><td class="l">Query gradients</td><td><span class="num" id="l1f"></span></td><td><span class="num" id="l1t"></span></td><td class="l">per query</td><td class="l">Q</td></tr>
+    <tr><td class="l">EK‑FAC factors</td><td><span class="num" id="l2f"></span></td><td><span class="num" id="l2t"></span></td><td class="l">per checkpoint</td><td class="l">S</td></tr>
+    <tr><td class="l">iHVP, EK‑FAC only</td><td><span class="num" id="l3f"></span></td><td><span class="num" id="l3t"></span></td><td class="l">per query</td><td class="l">Σ ab(a+b)</td></tr>
+    <tr><td class="l">iHVP, ASTRA</td><td><span class="num" id="l3af"></span></td><td><span class="num" id="l3at"></span></td><td class="l">per query</td><td class="l">J · B</td></tr>
+    <tr class="hi"><td class="l">Scan of N candidates</td><td><span class="num" id="l4f"></span></td><td><span class="num" id="l4t"></span></td><td class="l">per batch of Q queries</td><td class="l">N</td></tr>
+    <tr><td class="l">Scan of the full corpus</td><td><span class="num" id="l4ff"></span></td><td><span class="num" id="l4ft"></span></td><td class="l">= pretraining</td><td class="l">D</td></tr>
+    <tr><td class="l">Validation retrains</td><td><span class="num" id="l5f"></span></td><td><span class="num" id="l5t"></span></td><td class="l">per method evaluation</td><td class="l">M · D<sub>ft</sub></td></tr>
+    <tr class="total"><td class="l">Per query, amortized over the batch (ASTRA + scan/Q)</td><td><span class="num" id="lpqf"></span></td><td><span class="num" id="lpqt"></span></td><td class="l"></td><td class="l"></td></tr>
+  </tbody>
+</table></div>
+
+<div class="takeaways">
+  <div class="take"><b>The inverse is cheap; the search is not</b><p>With EK‑FAC the inverse‑Hessian‑vector product costs a few gradient computations. The training‑set scan costs one gradient computation <em>per candidate</em>, and a full scan equals pretraining.</p></div>
+  <div class="take"><b>Storage kills the naive amortization</b><p>Storing gradients to reuse across queries needs petabytes for a modest candidate set. Compression to a few thousand dimensions is the only route to per‑query lookups, and quality is the price.</p></div>
+  <div class="take"><b>Accuracy has a known price</b><p>ASTRA multiplies the per‑query inverse cost by a few thousand but leaves it far below the scan. Once retrieval is a lookup, that iteration count is the per‑query bill, which is why preconditioner quality matters.</p></div>
+  <div class="take"><b>Validation costs as much as use</b><p>Ground truth means retraining, hundreds of times. It is only possible at fine‑tuning scale, and everything known about which approximations matter comes from there.</p></div>
+</div>
+
+<h2 id="gotchas">5. Things that go wrong quietly</h2>
+<ul>
+  <li><b>Truncation is damping.</b> Stopping an iterative solve after $J$ steps of size $\alpha$ computes $(G+(\lambda+\tfrac1{\alpha J})I)^{-1}$, not $(G+\lambda I)^{-1}$. Two runs with different iteration budgets are answering different questions.</li>
+  <li><b>Dropping the tail.</b> Any method that keeps a top‑$k$ eigen‑subspace, whether by Arnoldi, PCA, or random projection, discards the low‑curvature directions in which the data is least constrained and the influence is largest per unit of gradient.</li>
+  <li><b>The model was never at a minimum.</b> Pretrain, fine‑tune, RL: the response function assumes convergence. SOURCE (Bae et al. 2024) splits training into segments and replaces each with a damped inverse using $\lambda_\ell=1/(\eta_\ell K_\ell)$, then ASTRA solves each one.</li>
+  <li><b>Only the MLPs.</b> Published LLM results compute influence over MLP weights only, because K‑FAC‑style factorization of attention is unsettled. Attribution through attention is simply absent.</li>
+  <li><b>Numerics.</b> Covariances of activations span many orders of magnitude; eigendecompositions of 14336‑by‑14336 matrices in reduced precision lose the small eigenvalues, which are the ones that matter after inversion. Accumulate in fp32 or better, and check that $\Lambda+\lambda$ never underflows relative to $\lambda$.</li>
+  <li><b>Sign and scale.</b> $\mathcal I_f$ is a derivative with respect to $\varepsilon$; removing an example corresponds to $\varepsilon=-1/N$, so the predicted change in $f$ is $-\mathcal I_f/N$. Rankings do not care, but calibrated predictions do.</li>
+</ul>
+
+<h2 id="refs">References</h2>
+<ol class="refs">
+  <li>R. D. Cook, "Detection of influential observation in linear regression," <i>Technometrics</i> 19(1), 1977.</li>
+  <li>P. W. Koh and P. Liang, "Understanding black‑box predictions via influence functions," ICML 2017.</li>
+  <li>J. Bae, N. Ng, A. Lo, M. Ghassemi, R. Grosse, "If influence functions are the answer, then what is the question?" NeurIPS 2022. The PBRF.</li>
+  <li>R. Grosse, J. Bae, C. Anil, et al., "Studying large language model generalization with influence functions," arXiv:2308.03296, 2023. EK‑FAC on models up to 52B, TF‑IDF candidate filtering, query batching.</li>
+  <li>A. Wang, D. Nguyen, W. Yang, J. Bae, S. McIlraith, R. Grosse, "Better training data attribution via better inverse Hessian‑vector products," arXiv:2507.14740, 2025. ASTRA.</li>
+  <li>J. Bae, W. Lin, J. Lorraine, R. Grosse, "Training data attribution via approximate unrolled differentiation," 2024. SOURCE.</li>
+  <li>J. Martens and R. Grosse, "Optimizing neural networks with Kronecker‑factored approximate curvature," ICML 2015. T. George et al., "Fast approximate natural gradient descent in a Kronecker‑factored eigenbasis," NeurIPS 2018. K‑FAC and EK‑FAC.</li>
+  <li>N. Agarwal, B. Bullins, E. Hazan, "Second‑order stochastic optimization for machine learning in linear time," JMLR 2017. LiSSA.</li>
+  <li>S. M. Park et al., "TRAK: Attributing model behavior at scale," ICML 2023. S. K. Choe et al., "What is your data worth to GPT? LLM‑scale data valuation with influence functions," 2024 (LoGra). Projection‑based retrieval.</li>
+  <li>G. Pruthi et al., "Estimating training data influence by tracing gradient descent," NeurIPS 2020. TracIn, the gradient‑dot‑product baseline.</li>
+</ol>
+
+<footer>Costs are order‑of‑magnitude estimates from FLOP counts under the stated assumptions; real systems differ by constant factors in utilization, precision, and communication. Math rendered with MathJax.</footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const sup=n=>String(n).replace(/-/g,'⁻').replace(/\d/g,d=>'⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
+function sci(x){ if(!isFinite(x)) return '∞'; if(x===0) return '0';
+  const e=Math.floor(Math.log10(Math.abs(x))); const m=x/Math.pow(10,e);
+  return (Math.abs(m)>=9.95? (m<0?'-':'')+'1.0×10'+sup(e+1) : m.toFixed(1)+'×10'+sup(e)); }
+function bytes(b){ const u=['B','KB','MB','GB','TB','PB','EB','ZB']; let i=0; while(b>=1000&&i<u.length-1){b/=1000;i++;} return (b>=100?b.toFixed(0):b.toFixed(1))+' '+u[i]; }
+function hours(h){ const s=h*3600;
+  if(s<1) return (s*1000).toFixed(0)+' ms';
+  if(s<120) return s.toFixed(1)+' s';
+  if(h<2) return (h*60).toFixed(0)+' min';
+  if(h<1000) return h.toFixed(0)+' H100‑h';
+  if(h<8760*2) return sci(h).replace('×10','×10')+' H100‑h ('+(h/24).toFixed(0)+' H100‑days)';
+  return sci(h)+' H100‑h ('+(h/8760).toFixed(0)+' H100‑years)'; }
+function fmt(x,d){ if(Math.abs(x)>=1e4||Math.abs(x)<1e-3) return sci(x); return Number(x.toPrecision(d||3)).toString(); }
+
+// ---- toy ----
+function toy(){
+  const s1=Math.pow(10,+$('s1').value), s2=Math.pow(10,+$('s2').value), lam=Math.pow(10,+$('lam').value);
+  $('s1v').value=fmt(s1); $('s2v').value=fmt(s2); $('lamv').value=(+$('lam').value<=-5?'0 (none)':fmt(lam));
+  const L=(+$('lam').value<=-5)?0:lam;
+  const dA=1*1+1*0, dB=1*0+1*0.1;
+  const iA=1*1/(s1+L), iB=0.1*1/(s2+L);
+  $('dA').textContent=fmt(dA); $('dB').textContent=fmt(dB);
+  $('iA').textContent=fmt(iA); $('iB').textContent=fmt(iB);
+  $('dW').innerHTML=dA>dB?'<span class="lose">A</span> by '+fmt(dA/dB)+'×':'<span class="win">B</span> by '+fmt(dB/dA)+'×';
+  $('iW').innerHTML=iA>iB?'<span class="lose">A</span> by '+fmt(iA/iB)+'×':'<span class="win">B</span> by '+fmt(iB/iA)+'×';
+  let note;
+  if(iB>iA) note='The dot product ranks A first because its gradient is larger. The influence ranks B first by '+fmt(iB/iA)+'×: A pushes where the rest of the data already holds the model rigid, so upweighting it barely moves the parameters. B pushes where almost nothing resists.';
+  else note='With damping this large, λ dominates both curvatures and the influence degenerates back into a scaled dot product. Damping is a trust region on how far into the flat directions the linearization is believed.';
+  $('toyNote').textContent=note;
+}
+['s1','s2','lam'].forEach(id=>$(id).addEventListener('input',toy)); toy();
+
+// ---- calculator ----
+const IDS=['P','T','L','d','h','Q','S','J','B','N','D','k','M','Dft','util'];
+function calc(){
+  const v={}; IDS.forEach(id=>v[id]=parseFloat($(id).value)||0);
+  const P=v.P*1e9, T=v.T, L=v.L, d=v.d, h=v.h, Q=v.Q, S=v.S, J=v.J, B=v.B, N=v.N, D=v.D*1e12, k=v.k, M=v.M, Dft=v.Dft*1e6;
+  const rate=989e12*v.util, H=f=>f/rate/3600;
+  const Cg=6*P*T;
+  $('Cg').textContent=sci(Cg); $('CgT').textContent=hours(H(Cg)); $('gradBytes').textContent=bytes(P*4);
+  // 1
+  const c1=Q*Cg; $('c1f').textContent=sci(c1); $('c1t').textContent=hours(H(c1));
+  // 2
+  const c2=3*S*Cg, fac=L*3*(d*d+h*h)*4, lamB=L*3*d*h*4, eig=L*3*10*(d*d*d+h*h*h);
+  $('c2f').textContent=sci(c2); $('c2t').textContent=hours(H(c2)); $('c2m').textContent=bytes(fac); $('c2l').textContent=bytes(lamB); $('c2e').textContent=sci(eig);
+  // 3
+  const solve=L*3*4*d*h*(d+h), astra=J*(2*B*Cg+solve);
+  $('c3f').textContent=sci(solve); $('c3t').textContent=hours(H(solve)); $('c3r').textContent=fmt(solve/Cg,2);
+  $('c3af').textContent=sci(astra); $('c3at').textContent=hours(H(astra)); $('c3aq').textContent=hours(H(astra*Q)); $('c3x').textContent=sci(astra/solve);
+  // 4
+  const scan=N*Cg, dots=N*Q*2*P, c4=scan+dots, full=6*P*D;
+  $('c4f').textContent=sci(c4); $('c4t').textContent=hours(H(c4)); $('c4g').textContent=fmt(Math.ceil(H(c4)/24),3);
+  $('c4dp').textContent=(100*dots/c4).toFixed(1)+'%';
+  $('c4full').textContent=sci(full); $('c4fullt').textContent=hours(H(full));
+  $('c4store').textContent=bytes(N*P*2); $('c4sk').textContent=bytes(N*k*2); $('c4pr').textContent=fmt(2*P*k/Cg,2);
+  // 5
+  const c5=M*6*P*Dft/2; $('c5f').textContent=sci(c5); $('c5t').textContent=hours(H(c5));
+  // ledger
+  $('l1f').textContent=sci(Cg); $('l1t').textContent=hours(H(Cg));
+  $('l2f').textContent=sci(c2); $('l2t').textContent=hours(H(c2));
+  $('l3f').textContent=sci(solve); $('l3t').textContent=hours(H(solve));
+  $('l3af').textContent=sci(astra); $('l3at').textContent=hours(H(astra));
+  $('l4f').textContent=sci(c4); $('l4t').textContent=hours(H(c4));
+  $('l4ff').textContent=sci(full); $('l4ft').textContent=hours(H(full));
+  $('l5f').textContent=sci(c5); $('l5t').textContent=hours(H(c5));
+  const pq=Cg+astra+c4/Q; $('lpqf').textContent=sci(pq); $('lpqt').textContent=hours(H(pq));
+}
+IDS.forEach(id=>$(id).addEventListener('input',calc)); calc();
+})();
+</script>
+</body>
+</html>
