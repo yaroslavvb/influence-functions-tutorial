@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Influence Functions, the Kaczmarz Way</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#fcfcfb; --surface:#ffffff; --surface-2:#f3f2ee; --border:#e2e0d9;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#8a8880;
+  --accent:#2a78d6; --new:#e34948; --grid:#ebe9e3; --axis:#c9c6bd;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme: dark;
+    --bg:#161615; --surface:#1e1e1c; --surface-2:#262624; --border:#3a3936;
+    --text:#f4f3ee; --text-2:#c3c2b7; --muted:#8f8e86;
+    --accent:#3987e5; --new:#e66767; --grid:#2a2a27; --axis:#4a4945;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#3aa13a; --s7:#9085e9;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:1120px;margin:0 auto;padding:24px 20px 80px}
+h1{font-size:2rem;line-height:1.2;margin:.4em 0 .2em;letter-spacing:-.01em}
+h2{font-size:1.45rem;margin:2.2em 0 .5em;letter-spacing:-.01em;border-top:1px solid var(--border);padding-top:1em}
+h3{font-size:1.1rem;margin:1.4em 0 .4em}
+p{max-width:72ch}
+.lead{color:var(--text-2);font-size:1.05rem;max-width:72ch}
+a{color:var(--accent)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:2px 0}
+.note{background:var(--surface-2);border-left:3px solid var(--accent);padding:10px 14px;border-radius:0 6px 6px 0;max-width:72ch;margin:14px 0}
+.note.warn{border-left-color:var(--new)}
+
+/* playground */
+.play{display:grid;grid-template-columns:minmax(300px,560px) minmax(300px,1fr);gap:20px;align-items:start;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin:16px 0}
+@media (max-width:820px){.play{grid-template-columns:1fr}}
+.canvas-wrap{position:relative;width:100%;aspect-ratio:1/1;max-width:560px}
+canvas{width:100%;height:100%;display:block;border-radius:8px;background:var(--surface);border:1px solid var(--border);touch-action:none;cursor:crosshair}
+.hint{font-size:.85rem;color:var(--muted);margin:8px 0 0}
+.controls{display:flex;flex-direction:column;gap:14px;font-size:.95rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row label{display:flex;align-items:center;gap:6px}
+button{font:inherit;font-size:.9rem;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.danger{border-color:var(--new);color:var(--new)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.slider{background:var(--surface-2);border-radius:8px;padding:10px 12px}
+.slider .top{display:flex;justify-content:space-between;align-items:baseline}
+.slider .val{font-family:ui-monospace,Menlo,monospace;font-weight:600}
+.slider .ticks{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)}
+fieldset{border:1px solid var(--border);border-radius:8px;padding:8px 12px 10px;margin:0}
+legend{font-size:.85rem;color:var(--text-2);padding:0 4px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.85rem;color:var(--text-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:14px;height:3px;border-radius:2px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%}
+.ring{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid currentColor}
+
+table{border-collapse:collapse;width:100%;font-size:.88rem;margin:8px 0}
+th,td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
+th{color:var(--text-2);font-weight:600;font-size:.8rem}
+td:first-child,th:first-child{text-align:left}
+.tbl-wrap{overflow-x:auto}
+.mono{font-family:ui-monospace,Menlo,monospace}
+.neg{color:var(--new)} .pos{color:var(--s3)}
+.stat{display:inline-block;background:var(--surface-2);border-radius:6px;padding:4px 10px;margin:4px 6px 4px 0;font-size:.9rem}
+.stat b{font-family:ui-monospace,Menlo,monospace}
+
+.steps{counter-reset:step;display:flex;flex-direction:column;gap:14px;margin:16px 0}
+.step{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;position:relative}
+.step h4{margin:0 0 6px;font-size:1rem}
+.step h4::before{counter-increment:step;content:counter(step);display:inline-flex;justify-content:center;align-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:.8rem;margin-right:10px}
+.step p{margin:.4em 0}
+.live{display:block;padding:8px 10px;background:var(--surface-2);border-radius:6px;margin:6px 0;overflow-x:auto}
+.dim{color:var(--muted);font-size:.85rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:700px){.two{grid-template-columns:1fr}}
+footer{margin-top:60px;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Influence Functions, the Kaczmarz Way</h1>
+<p class="lead">An interactive tutorial on how a <em>new observation</em> changes the residuals of the observations you already have,
+using the simplest possible model: least-squares in two dimensions, where every observation is a line and the solver is Kaczmarz's method of projections.</p>
+
+<h2 id="setup">1. Observations are lines, the loss is a sum of rank-1 quadratics</h2>
+<p>Our model has two parameters $x=(x_1,x_2)\in\mathbb R^2$. Each observation $i$ says "the parameters should satisfy a linear equation":
+$$a_i^\top x = b_i,\qquad a_i\in\mathbb R^2,\ \|a_i\|=1 .$$
+In the plane this is a <strong>line</strong> with unit normal $a_i$ and offset $b_i$. The <strong>residual</strong> of observation $i$ at parameters $x$ is
+$$r_i(x) = a_i^\top x - b_i ,$$
+which, because $a_i$ is a unit vector, is exactly the <em>signed distance</em> from $x$ to line $i$. A residual is our "prediction error" on that observation.</p>
+<p>With more than two lines that do not pass through a common point, the system $Ax=b$ is <em>inconsistent</em>: no $x$ has all residuals zero. Least squares picks the $x$ with the smallest total squared residual,
+$$f(x)=\tfrac12\sum_{i=1}^n \big(a_i^\top x-b_i\big)^2=\sum_i f_i(x),\qquad \nabla^2 f_i = a_i a_i^\top .$$
+Each term $f_i$ is a quadratic whose Hessian $a_i a_i^\top$ has rank one: it only curves in the direction $a_i$, perpendicular to the line, and is flat along the line. The full Hessian
+$$H=\sum_i a_i a_i^\top = A^\top A$$
+is invertible as soon as two lines are not parallel, and the least-squares solution is
+$$x^\star = H^{-1}A^\top b,\qquad\text{equivalently}\qquad \sum_i a_i\, r_i(x^\star)=0 .$$</p>
+
+<h2 id="kaczmarz">2. Kaczmarz: solve by projecting onto one line at a time</h2>
+<p>Kaczmarz's method visits the lines one at a time. At line $i$ it moves the current iterate straight toward the line, along the normal $a_i$:
+$$x_{k+1} = x_k + \lambda\,\frac{b_i - a_i^\top x_k}{\|a_i\|^2}\,a_i = x_k - \lambda\, r_i(x_k)\,a_i .$$
+With relaxation $\lambda=1$ this is the orthogonal projection of $x_k$ onto line $i$. Note that it is also one gradient step on the rank-1 quadratic $f_i$ with step size $\lambda$: $\nabla f_i(x)=a_i r_i(x)$. So <strong>Kaczmarz is SGD on the sum of rank-1 quadratics</strong>, with one observation per step.</p>
+<p>If the lines all met at a point, the projections would converge to it. When the system is inconsistent, cyclic projections settle into a <em>limit cycle</em>: a little loop that visits each line in turn. As $\lambda\to0$ the loop shrinks onto $x^\star$ (Censor, Eggermont &amp; Gordon, 1983). You can watch this in the playground below, "Kaczmarz" panel: run it at $\lambda=1$, then at $\lambda=0.1$.</p>
+
+<h2 id="question">3. The question: what does one more line do to everyone else?</h2>
+<p>Suppose we add a new observation, a line $(a,\beta)$, with a <em>strength</em> $\varepsilon\ge0$ (a weight on its squared residual):
+$$f_\varepsilon(x) = f(x) + \frac{\varepsilon}{2}\,(a^\top x-\beta)^2 .$$
+$\varepsilon=0$ is the old problem, $\varepsilon=1$ treats the new line like any other, $\varepsilon\to\infty$ forces the solution onto the line. The new minimizer $x(\varepsilon)$ moves, and every old residual $r_i(x(\varepsilon))$ changes with it. <strong>An influence function is the derivative of that change at $\varepsilon=0$.</strong> In this linear model we can also get the <em>exact</em> change for any $\varepsilon$, so you can see how good the first-order prediction is.</p>
+
+<h2 id="playground">4. Playground</h2>
+<p>A new (red, dashed) line is already drawn. <strong>Move the strength slider</strong> and watch $x^\star$ slide toward it while the residual segments on lines 1 to 4 change. <strong>Draw your own new line by pressing and dragging on empty canvas</strong>, or drag the small circles to move any line.</p>
+
+<div class="play">
+  <div>
+    <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+    <p class="hint">Press and drag on empty space to draw the new (red) line. Drag circle handles to move any line. The gray square is the Kaczmarz start point.</p>
+    <div class="legend" id="legend">
+      <span><span class="dot" style="background:var(--text)"></span> $x^\star$ (old least-squares solution)</span>
+      <span><span class="dot" style="background:var(--new)"></span> $x(\varepsilon)$ exact new solution</span>
+      <span><span class="ring" style="color:var(--new)"></span> first-order (influence-function) prediction</span>
+      <span><span class="sw" style="background:var(--new);height:2px"></span> straight path of $x(\varepsilon)$ as $\varepsilon:0\to\infty$</span>
+      <span><span style="color:var(--new);font-weight:700">K</span> one Kaczmarz projection of $x^\star$ onto the new line</span>
+      <span><span class="sw" style="background:var(--muted)"></span> Kaczmarz iterates</span>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="slider">
+      <div class="top"><span>Strength of the new line &nbsp;<span class="mono">ε</span></span><span class="val" id="epsVal">1.00</span></div>
+      <input type="range" id="eps" min="0" max="10" step="0.01" value="1">
+      <div class="ticks"><span>0 (ignored)</span><span>1 (ordinary observation)</span><span>10 (nearly a hard constraint)</span></div>
+    </div>
+    <div class="row">
+      <button id="btnRandomNew">Random new line</button>
+      <button id="btnRemoveNew" class="danger">Remove new line</button>
+      <button id="btnAddLine">Add a line to the base set</button>
+      <button id="btnRandomize">Randomize base lines</button>
+      <button id="btnReset">Reset</button>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="showRes" checked> residual segments</label>
+      <label><input type="checkbox" id="showFO" checked> first-order prediction</label>
+      <label><input type="checkbox" id="showKacz" checked> Kaczmarz path</label>
+    </div>
+    <fieldset>
+      <legend>Kaczmarz (SGD on the rank-1 quadratics)</legend>
+      <div class="slider" style="margin-bottom:8px">
+        <div class="top"><span>Relaxation <span class="mono">λ</span> (1 = full projection)</span><span class="val" id="lamVal">1.00</span></div>
+        <input type="range" id="lam" min="0.02" max="1" step="0.01" value="1">
+      </div>
+      <div class="row">
+        <button id="kStep">Step</button>
+        <button id="kSweep">Sweep</button>
+        <button id="kRun" class="primary">Run</button>
+        <button id="kReset">Reset</button>
+        <label><input type="checkbox" id="kIncludeNew" checked> include new line with weight ε</label>
+      </div>
+      <div class="dim" id="kInfo">0 steps</div>
+    </fieldset>
+    <div id="stats"></div>
+    <div class="tbl-wrap"><table id="tbl"></table></div>
+    <p class="dim" id="tblNote"></p>
+  </div>
+</div>
+
+<h2 id="walk">5. Walkthrough with the numbers on screen</h2>
+<p>Every quantity below is recomputed live from the playground. Drag a line or move the slider and watch it change. Vectors are written as rows to save space.</p>
+<div id="noNew" class="note warn">Draw a new line on the canvas to see steps 4 to 8 filled in.</div>
+<div class="steps">
+  <div class="step"><h4>Collect the observations</h4>
+    <p>Rows of $A$ are the unit normals $a_i^\top$, entries of $b$ are the offsets.</p>
+    <span class="live" id="w1"></span></div>
+  <div class="step"><h4>Form the Hessian as a sum of rank-1 pieces</h4>
+    <p>$H=\sum_i a_i a_i^\top$. Each term has rank one; the sum is invertible because the lines are not all parallel.</p>
+    <span class="live" id="w2"></span></div>
+  <div class="step"><h4>Solve for the least-squares point</h4>
+    <p>$x^\star = H^{-1}A^\top b$. This is the black dot. Kaczmarz with small $\lambda$ circles around it.</p>
+    <span class="live" id="w3"></span></div>
+  <div class="step"><h4>Read off the current residuals</h4>
+    <p>$r_i = a_i^\top x^\star - b_i$, the signed distance from $x^\star$ to each line (the dashed segments). These are the "predictions" we want to track.</p>
+    <span class="live" id="w4"></span></div>
+  <div class="step"><h4>Measure the new line's own residual</h4>
+    <p>Before we fit anything, how wrong is the current solution on the new observation? $r_{\text{new}} = a^\top x^\star - \beta$. If this is zero, the new line passes through $x^\star$ and nothing will change no matter the strength.</p>
+    <span class="live" id="w5"></span></div>
+  <div class="step"><h4>Compute the influence direction</h4>
+    <p>Solve one linear system, $v = H^{-1}a$. This is the direction $x^\star$ will move in. Compare with the Kaczmarz direction, which is simply $a$: the influence direction is the same request, <em>preconditioned by the curvature of all the other observations</em>. Also record the scalar $q = a^\top H^{-1} a$, a leverage-like number that says how much the existing data already pins down the direction $a$.</p>
+    <span class="live" id="w6"></span></div>
+  <div class="step"><h4>Move the solution</h4>
+    <p>The exact new minimizer (derived in section 6 with the Sherman–Morrison identity) and its first-order approximation are
+    $$x(\varepsilon) = x^\star - \frac{\varepsilon\, r_{\text{new}}}{1+\varepsilon q}\,v ,\qquad
+      x(\varepsilon)\approx x^\star - \varepsilon\, r_{\text{new}}\, v .$$
+    Both move along the same straight line through $x^\star$; the exact one slows down as $\varepsilon$ grows and stops on the new line, the linear one keeps going.</p>
+    <span class="live" id="w7"></span></div>
+  <div class="step"><h4>Update every old residual</h4>
+    <p>Residuals are linear in $x$, so $\Delta r_i = a_i^\top\big(x(\varepsilon)-x^\star\big)$:
+    $$\Delta r_i(\varepsilon) = -\frac{\varepsilon\, r_{\text{new}}}{1+\varepsilon q}\; a_i^\top H^{-1} a ,\qquad
+      \Delta r_i \approx -\varepsilon\, r_{\text{new}}\; \underbrace{a_i^\top H^{-1} a}_{k_i} .$$
+    The number $k_i = a_i^\top H^{-1} a$ is the whole story of "which old observations does the new one talk to": it is large when line $i$ and the new line are nearly parallel (their normals agree) and the data is thin in that direction.</p>
+    <span class="live" id="w8"></span></div>
+</div>
+
+<h2 id="derivation">6. The math behind the steps</h2>
+<h3>Exact update: a rank-1 change to the Hessian</h3>
+<p>Setting the gradient of $f_\varepsilon$ to zero gives the normal equations of the augmented problem:
+$$(H+\varepsilon\, a a^\top)\,x = A^\top b + \varepsilon\,\beta\, a .$$
+The Hessian changed by a rank-1 term, so its inverse changes by a rank-1 term too (Sherman–Morrison):
+$$(H+\varepsilon a a^\top)^{-1} = H^{-1} - \frac{\varepsilon\, H^{-1}a\,a^\top H^{-1}}{1+\varepsilon\, a^\top H^{-1} a}.$$
+Multiply out, use $H^{-1}A^\top b = x^\star$ and write $v=H^{-1}a$, $q=a^\top v$, $r_{\text{new}}=a^\top x^\star-\beta$:
+$$x(\varepsilon) = x^\star + \varepsilon\beta v - \frac{\varepsilon\, v\,(a^\top x^\star + \varepsilon\beta q)}{1+\varepsilon q}
+ = x^\star - \frac{\varepsilon\, r_{\text{new}}}{1+\varepsilon q}\, v .$$
+This is exact for every $\varepsilon\ge0$, which is what makes the linear model a good place to build intuition: the "influence function" is not an approximation to something unknown, it is the tangent of a curve we can draw.</p>
+
+<h3>The influence function is the derivative at $\varepsilon=0$</h3>
+<p>Differentiating,
+$$\frac{d x}{d\varepsilon}\Big|_{\varepsilon=0} = -\,r_{\text{new}}\, H^{-1} a = -\,H^{-1}\nabla f_{\text{new}}(x^\star),$$
+which is the classic formula (Cook 1977; Koh &amp; Liang 2017): the parameter change is minus the inverse Hessian times the gradient of the new example's loss. For the residual on observation $i$ and its loss $f_i=\tfrac12 r_i^2$,
+$$\frac{d r_i}{d\varepsilon}\Big|_0 = -\,r_{\text{new}}\, a_i^\top H^{-1} a,\qquad
+  \frac{d f_i}{d\varepsilon}\Big|_0 = -\,r_i\, r_{\text{new}}\, a_i^\top H^{-1} a = -\nabla f_i(x^\star)^\top H^{-1}\nabla f_{\text{new}}(x^\star).$$
+The loss influence is a bilinear form between the two gradients, with the inverse Hessian as the metric. In the plane it factors into three interpretable numbers: how wrong the model already is on $i$ ($r_i$), how wrong it is on the newcomer ($r_{\text{new}}$), and how aligned the two lines are in the geometry set by all the data ($a_i^\top H^{-1}a$).</p>
+
+<h3>Two ways to "project onto the new line"</h3>
+<p>Let the strength go to infinity. Then $\varepsilon/(1+\varepsilon q)\to 1/q$ and
+$$x(\infty) = x^\star - \frac{r_{\text{new}}}{q}\,H^{-1}a ,\qquad a^\top x(\infty) = a^\top x^\star - r_{\text{new}} = \beta .$$
+So $x(\infty)$ lies exactly on the new line: it is the minimizer of the old loss <em>subject to</em> the new equation. Compare with a single Kaczmarz step from $x^\star$:
+$$x_{\text{K}} = x^\star - r_{\text{new}}\, a .$$
+Both land on the new line, and both are projections of $x^\star$ onto it. Kaczmarz projects orthogonally in the Euclidean metric, moving along $a$. The least-squares update projects orthogonally in the metric defined by $H$, moving along $H^{-1}a$. It is the projection that disturbs the old residuals as little as possible in total, which is why it is generally <em>not</em> the shortest path. The "K" marker in the playground shows the Kaczmarz landing point; the end of the red path shows the $H$-projection. They coincide only when $a$ is an eigenvector of $H$.</p>
+
+<h3>How the strength slider maps onto Kaczmarz</h3>
+<p>Kaczmarz with relaxation $\lambda$ is SGD with step $\lambda$ on $\sum_i f_i$. A weight $\varepsilon$ on the new observation means its gradient is counted $\varepsilon$ times, so the playground visits the new line $\lceil\varepsilon\rceil$ times per sweep, with the last visit's relaxation scaled by the fractional part. For small $\lambda$ the limit cycle of this schedule closes in on $x(\varepsilon)$, the same point the closed-form update produces. For $\lambda=1$ the cycle is larger, but its "center of mass" still shifts in the direction $H^{-1}a$ rather than along $a$: the other lines push back on each projection, and the aggregate of all those pushbacks is exactly what the inverse Hessian computes in one shot.</p>
+
+<h3>What carries over beyond two dimensions</h3>
+<ul>
+  <li>Every formula above holds for $x\in\mathbb R^d$ unchanged, with $H=A^\top A$ a $d\times d$ matrix.</li>
+  <li>For a general (nonlinear) model with per-example losses $\ell_i(\theta)$, replace $a_i$ by $\nabla\ell_i(\theta^\star)$ and $H$ by the Hessian of the total loss. The exact rank-1 update no longer exists, but the derivative formula $-\nabla\ell_i^\top H^{-1}\nabla\ell_{\text{new}}$ is exactly what practical influence-function methods compute, usually via an iterative solve for $H^{-1}\nabla\ell_{\text{new}}$.</li>
+  <li>The two-projection picture survives too: an SGD step on the new example moves along its gradient, while the influence step moves along the inverse-Hessian-preconditioned gradient. The difference between them is the reaction of all the other data.</li>
+</ul>
+
+<footer>Built as a self-contained page (canvas + KaTeX). Colors follow a colorblind-checked categorical order.</footer>
+</main>
+
+<script>
+(function(){
+'use strict';
+// ---------- helpers ----------
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PAL = ()=>['--s1','--s2','--s3','--s4','--s5','--s6','--s7'].map(css);
+const R = 5; // world half-extent
+const dot=(u,v)=>u[0]*v[0]+u[1]*v[1];
+const add=(u,v)=>[u[0]+v[0],u[1]+v[1]];
+const sub=(u,v)=>[u[0]-v[0],u[1]-v[1]];
+const mul=(u,s)=>[u[0]*s,u[1]*s];
+const norm=u=>Math.hypot(u[0],u[1]);
+const f3=x=>{ if(!isFinite(x)) return '\\infty'; let s=x.toFixed(3); if(s==='-0.000') s='0.000'; return s; };
+const f2=x=>{ let s=x.toFixed(2); if(s==='-0.00') s='0.00'; return s; };
+const rowv=u=>`\\begin{bmatrix}${f3(u[0])}&${f3(u[1])}\\end{bmatrix}`;
+const colv=u=>`\\begin{bmatrix}${f3(u[0])}\\\\${f3(u[1])}\\end{bmatrix}`;
+const mat2=M=>`\\begin{bmatrix}${f3(M[0][0])}&${f3(M[0][1])}\\\\${f3(M[1][0])}&${f3(M[1][1])}\\end{bmatrix}`;
+function tex(id,s){ const el=document.getElementById(id); try{ katex.render(s,el,{displayMode:true,throwOnError:false}); }catch(e){ el.textContent=s; } }
+const rnd=(lo,hi)=>lo+Math.random()*(hi-lo);
+
+// ---------- state ----------
+const DEFAULT_LINES = ()=>[
+  {p:[-4,-2.2],q:[4,0.8]},
+  {p:[-1.6,4],q:[1.6,-3.5]},
+  {p:[-4,2.4],q:[4,3.0]},
+  {p:[1.2,-4],q:[3.4,4]},
+];
+const DEFAULT_NEW = ()=>({p:[-4,4.2],q:[4,2.2]});
+const S = {
+  lines: DEFAULT_LINES(),
+  newLine: DEFAULT_NEW(),
+  eps: 1, lam: 1,
+  show:{res:true,fo:true,kacz:true},
+  k:{x0:[-4,-4], x:[-4,-4], path:[[-4,-4]], idx:0, steps:0, running:false, includeNew:true},
+};
+
+function params(l){ // unit normal a and offset b of the line through p,q
+  const d=sub(l.q,l.p), n=norm(d)||1e-9;
+  const a=[d[1]/n,-d[0]/n];
+  return {a, b:dot(a,l.p)};
+}
+function randomLine(){
+  const c=[rnd(-3,3),rnd(-3,3)], th=rnd(0,Math.PI), L=rnd(2.5,4);
+  const d=[Math.cos(th)*L,Math.sin(th)*L];
+  return {p:sub(c,d),q:add(c,d)};
+}
+
+// ---------- least squares & influence ----------
+function compute(){
+  const P=S.lines.map(params);
+  const H=[[0,0],[0,0]], g=[0,0];
+  for(const {a,b} of P){
+    H[0][0]+=a[0]*a[0]; H[0][1]+=a[0]*a[1]; H[1][0]+=a[1]*a[0]; H[1][1]+=a[1]*a[1];
+    g[0]+=a[0]*b; g[1]+=a[1]*b;
+  }
+  const det=H[0][0]*H[1][1]-H[0][1]*H[1][0];
+  const singular=Math.abs(det)<1e-6;
+  const Hi=singular?null:[[H[1][1]/det,-H[0][1]/det],[-H[1][0]/det,H[0][0]/det]];
+  const solve=u=>Hi?[Hi[0][0]*u[0]+Hi[0][1]*u[1],Hi[1][0]*u[0]+Hi[1][1]*u[1]]:[0,0];
+  const xs=solve(g);
+  const r=P.map(({a,b})=>dot(a,xs)-b);
+  const out={P,H,Hi,det,singular,g,xs,r};
+  if(S.newLine){
+    const {a,b}=params(S.newLine);
+    const rnew=dot(a,xs)-b;
+    const v=solve(a), q=dot(a,v);
+    const e=S.eps;
+    const coef=e*rnew/(1+e*q);           // exact scalar
+    const x_eps=sub(xs,mul(v,coef));
+    const x_fo=sub(xs,mul(v,e*rnew));     // first-order
+    const x_inf=sub(xs,mul(v,rnew/q));    // eps -> infinity
+    const x_kacz=sub(xs,mul(a,rnew));     // one Kaczmarz projection
+    const k=P.map(({a:ai})=>dot(ai,v));   // a_i^T H^-1 a
+    const dr=k.map(ki=>-coef*ki);
+    const drfo=k.map(ki=>-e*rnew*ki);
+    const rnewEps=dot(a,x_eps)-b;
+    Object.assign(out,{a,b,rnew,v,q,coef,x_eps,x_fo,x_inf,x_kacz,k,dr,drfo,rnewEps});
+  }
+  return out;
+}
+
+// ---------- canvas ----------
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+let W=560, DPR=1;
+function resize(){
+  const rect=cv.getBoundingClientRect();
+  W=Math.max(200,Math.floor(rect.width)); DPR=window.devicePixelRatio||1;
+  cv.width=Math.floor(W*DPR); cv.height=Math.floor(W*DPR);
+  draw();
+}
+const toPx=p=>[(p[0]+R)/(2*R)*W,(R-p[1])/(2*R)*W];
+const toW=px=>[px[0]/W*2*R-R, R-px[1]/W*2*R];
+
+function drawLine(l,color,width,dash){
+  const d=sub(l.q,l.p), n=norm(d)||1e-9, u=[d[0]/n,d[1]/n];
+  const A=toPx(add(l.p,mul(u,-40))), B=toPx(add(l.p,mul(u,40)));
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash||[]);
+  ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.stroke(); ctx.restore();
+}
+function circle(p,rad,fill,stroke,lw){
+  const q=toPx(p); ctx.beginPath(); ctx.arc(q[0],q[1],rad,0,Math.PI*2);
+  if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||2;ctx.stroke();}
+}
+function seg(p,q,color,width,dash){
+  const A=toPx(p),B=toPx(q); ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash||[]);
+  ctx.beginPath(); ctx.moveTo(A[0],A[1]); ctx.lineTo(B[0],B[1]); ctx.stroke(); ctx.restore();
+}
+function label(txt,p,color,dx,dy,bold){
+  const q=toPx(p); ctx.fillStyle=color; ctx.font=(bold?'700 ':'600 ')+'13px -apple-system,Segoe UI,Roboto,sans-serif';
+  ctx.fillText(txt,q[0]+(dx||0),q[1]+(dy||0));
+}
+function residualSeg(x,a,b,color,width,dash){
+  const r=dot(a,x)-b; seg(x,sub(x,mul(a,r)),color,width,dash);
+}
+
+let C=null;
+function draw(){
+  C=compute();
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,W);
+  // grid
+  ctx.strokeStyle=css('--grid'); ctx.lineWidth=1;
+  for(let i=-R;i<=R;i++){ const p=toPx([i,i]); ctx.beginPath(); ctx.moveTo(p[0],0); ctx.lineTo(p[0],W); ctx.moveTo(0,p[1]); ctx.lineTo(W,p[1]); ctx.stroke(); }
+  ctx.strokeStyle=css('--axis'); const o=toPx([0,0]);
+  ctx.beginPath(); ctx.moveTo(o[0],0); ctx.lineTo(o[0],W); ctx.moveTo(0,o[1]); ctx.lineTo(W,o[1]); ctx.stroke();
+
+  const pal=PAL();
+  // Kaczmarz path
+  if(S.show.kacz && S.k.path.length>1){
+    ctx.save(); ctx.strokeStyle=css('--muted'); ctx.lineWidth=1.5; ctx.globalAlpha=.8; ctx.beginPath();
+    const st=Math.max(0,S.k.path.length-120);
+    for(let i=st;i<S.k.path.length;i++){ const p=toPx(S.k.path[i]); if(i===st) ctx.moveTo(p[0],p[1]); else ctx.lineTo(p[0],p[1]); }
+    ctx.stroke(); ctx.restore();
+    circle(S.k.x,4,css('--muted'),css('--surface'),1.5);
+  }
+  // base lines
+  S.lines.forEach((l,i)=>{
+    const col=pal[i%pal.length];
+    drawLine(l,col,2);
+    const {a}=params(l);
+    const mid=mul(add(l.p,l.q),.5);
+    label(String(i+1),add(mid,mul(a,0.35)),col,-4,4,true);
+  });
+  // new line
+  if(S.newLine){ drawLine(S.newLine,css('--new'),2.5,[8,5]); const mid=mul(add(S.newLine.p,S.newLine.q),.5); label('new',add(mid,mul(C.a,0.4)),css('--new'),-10,4,true); }
+
+  if(!C.singular){
+    const xs=C.xs;
+    if(S.newLine){
+      // path x* -> x(inf)
+      seg(xs,C.x_inf,css('--new'),1.5);
+      circle(C.x_inf,3,css('--new'));
+      // Kaczmarz projection marker
+      const kp=toPx(C.x_kacz); ctx.fillStyle=css('--new'); ctx.font='700 13px -apple-system,Segoe UI,sans-serif'; ctx.fillText('K',kp[0]-4,kp[1]+5);
+      // residuals at x(eps)
+      if(S.show.res){
+        C.P.forEach(({a,b},i)=>residualSeg(C.x_eps,a,b,pal[i%pal.length],1.5,[4,3]));
+        residualSeg(C.x_eps,C.a,C.b,css('--new'),1.5,[4,3]);
+        // faint old residuals
+        ctx.save(); ctx.globalAlpha=.35; C.P.forEach(({a,b},i)=>residualSeg(xs,a,b,pal[i%pal.length],1.5,[2,3])); ctx.restore();
+      }
+      if(S.show.fo) circle(C.x_fo,6,null,css('--new'),2);
+      circle(C.x_eps,6,css('--new'),css('--surface'),1.5);
+      label('x(ε)',C.x_eps,css('--new'),9,-8);
+    } else if(S.show.res){
+      C.P.forEach(({a,b},i)=>residualSeg(xs,a,b,pal[i%pal.length],1.5,[4,3]));
+    }
+    circle(xs,6,css('--text'),css('--surface'),1.5);
+    label('x*',xs,css('--text'),9,14);
+  }
+  // Kaczmarz start handle
+  { const q=toPx(S.k.x0); ctx.fillStyle=css('--muted'); ctx.fillRect(q[0]-5,q[1]-5,10,10); }
+  // handles
+  const hs=handles();
+  hs.forEach(h=>{ circle(h.pt,h.kind==='new'?5:4.5,css('--surface'),h.color,2); });
+  updatePanels();
+}
+
+function handles(){
+  const pal=PAL(), hs=[];
+  if(S.newLine){ hs.push({pt:S.newLine.p,kind:'new',obj:S.newLine,key:'p',color:css('--new')},{pt:S.newLine.q,kind:'new',obj:S.newLine,key:'q',color:css('--new')}); }
+  S.lines.forEach((l,i)=>{ const c=pal[i%pal.length]; hs.push({pt:l.p,kind:'base',obj:l,key:'p',color:c},{pt:l.q,kind:'base',obj:l,key:'q',color:c}); });
+  hs.push({pt:S.k.x0,kind:'k0',obj:S.k,key:'x0',color:css('--muted')});
+  return hs;
+}
+
+// ---------- pointer interaction ----------
+let drag=null;
+function ptr(e){ const rect=cv.getBoundingClientRect(); return toW([(e.clientX-rect.left)*W/rect.width,(e.clientY-rect.top)*W/rect.height]); }
+cv.addEventListener('pointerdown',e=>{
+  e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  const w=ptr(e); const tol=12/W*2*R;
+  let best=null,bd=tol;
+  for(const h of handles()){ const d=norm(sub(h.pt,w)); if(d<bd){bd=d;best=h;} }
+  if(best){ drag={type:'handle',h:best}; }
+  else { S.newLine={p:w,q:w}; drag={type:'draw'}; }
+  draw();
+});
+cv.addEventListener('pointermove',e=>{
+  if(!drag) return; const w=[Math.max(-R,Math.min(R,ptr(e)[0])),Math.max(-R,Math.min(R,ptr(e)[1]))];
+  if(drag.type==='draw'){ S.newLine.q=w; }
+  else { drag.h.obj[drag.h.key]=w; if(drag.h.kind==='k0'){ kReset(); } }
+  draw();
+});
+function endDrag(e){
+  if(!drag) return;
+  if(drag.type==='draw'){ if(norm(sub(S.newLine.q,S.newLine.p))<0.3) S.newLine=null; }
+  drag=null; draw();
+}
+cv.addEventListener('pointerup',endDrag); cv.addEventListener('pointercancel',endDrag);
+
+// ---------- Kaczmarz ----------
+function schedule(){
+  const sch=S.lines.map(l=>({...params(l),lam:S.lam,isNew:false}));
+  if(S.newLine && S.k.includeNew && S.eps>0){
+    const {a,b}=params(S.newLine); const n=Math.floor(S.eps), fr=S.eps-n;
+    for(let i=0;i<n;i++) sch.push({a,b,lam:S.lam,isNew:true});
+    if(fr>1e-9) sch.push({a,b,lam:S.lam*fr,isNew:true});
+  }
+  return sch;
+}
+function kStepOnce(){
+  const sch=schedule(); if(!sch.length) return;
+  const s=sch[S.k.idx%sch.length];
+  const r=dot(s.a,S.k.x)-s.b;
+  S.k.x=sub(S.k.x,mul(s.a,s.lam*r));
+  S.k.path.push(S.k.x); if(S.k.path.length>600) S.k.path.shift();
+  S.k.idx=(S.k.idx+1)%sch.length; S.k.steps++;
+}
+function kSweep(){ const n=schedule().length; for(let i=0;i<n;i++) kStepOnce(); }
+function kReset(){ S.k.x=S.k.x0.slice(); S.k.path=[S.k.x0.slice()]; S.k.idx=0; S.k.steps=0; }
+let timer=null;
+function kRun(on){
+  S.k.running=on; document.getElementById('kRun').textContent=on?'Pause':'Run';
+  if(timer){clearInterval(timer);timer=null;}
+  if(on) timer=setInterval(()=>{ kStepOnce(); draw(); },110);
+}
+document.getElementById('kStep').onclick=()=>{kStepOnce();draw();};
+document.getElementById('kSweep').onclick=()=>{kSweep();draw();};
+document.getElementById('kRun').onclick=()=>kRun(!S.k.running);
+document.getElementById('kReset').onclick=()=>{kReset();draw();};
+document.getElementById('kIncludeNew').onchange=e=>{S.k.includeNew=e.target.checked;S.k.idx=0;draw();};
+
+// ---------- controls ----------
+const epsEl=document.getElementById('eps'), lamEl=document.getElementById('lam');
+epsEl.oninput=()=>{S.eps=+epsEl.value; document.getElementById('epsVal').textContent=f2(S.eps); S.k.idx=0; draw();};
+lamEl.oninput=()=>{S.lam=+lamEl.value; document.getElementById('lamVal').textContent=f2(S.lam); draw();};
+document.getElementById('btnRandomNew').onclick=()=>{S.newLine=randomLine();draw();};
+document.getElementById('btnRemoveNew').onclick=()=>{S.newLine=null;draw();};
+document.getElementById('btnAddLine').onclick=()=>{ if(S.lines.length<7){S.lines.push(randomLine());draw();} };
+document.getElementById('btnRandomize').onclick=()=>{S.lines=S.lines.map(()=>randomLine());kReset();draw();};
+document.getElementById('btnReset').onclick=()=>{S.lines=DEFAULT_LINES();S.newLine=DEFAULT_NEW();S.eps=1;epsEl.value=1;document.getElementById('epsVal').textContent='1.00';S.k.x0=[-4,-4];kReset();draw();};
+for(const [id,key] of [['showRes','res'],['showFO','fo'],['showKacz','kacz']]) document.getElementById(id).onchange=e=>{S.show[key]=e.target.checked;draw();};
+
+// ---------- panels: stats, table, walkthrough ----------
+let pending=false;
+function updatePanels(){ if(pending) return; pending=true; requestAnimationFrame(()=>{pending=false; renderPanels();}); }
+function cls(x){ return x<-1e-9?'neg':(x>1e-9?'pos':''); }
+function renderPanels(){
+  const c=C, pal=PAL(), n=S.lines.length;
+  const stats=document.getElementById('stats'), tbl=document.getElementById('tbl'), note=document.getElementById('tblNote');
+  const kinfo=document.getElementById('kInfo');
+  kinfo.textContent=`${S.k.steps} steps, ${schedule().length} visits per sweep (${n} base line${n!==1?'s':''}${S.newLine&&S.k.includeNew&&S.eps>0?` + ${S.eps.toFixed(2)} visits of the new line`:''}), current point (${f2(S.k.x[0])}, ${f2(S.k.x[1])})`;
+  if(c.singular){
+    stats.innerHTML='<span class="stat neg">H is singular: all lines are parallel. Rotate one of them.</span>';
+    tbl.innerHTML=''; note.textContent='';
+    return;
+  }
+  const old2=c.r.reduce((s,x)=>s+x*x,0);
+  if(!S.newLine){
+    stats.innerHTML=`<span class="stat">x* = (<b>${f3(c.xs[0])}</b>, <b>${f3(c.xs[1])}</b>)</span><span class="stat">Σ r_i² = <b>${f3(old2)}</b></span>`;
+    let h='<tr><th>line</th><th>a_i (normal)</th><th>b_i</th><th>r_i at x*</th></tr>';
+    c.P.forEach(({a,b},i)=>{ h+=`<tr><td><span class="sw" style="background:${pal[i%pal.length]};vertical-align:middle"></span> ${i+1}</td><td class="mono">(${f3(a[0])}, ${f3(a[1])})</td><td class="mono">${f3(b)}</td><td class="mono ${cls(c.r[i])}">${f3(c.r[i])}</td></tr>`; });
+    tbl.innerHTML=h; note.textContent='Draw a new line to see how these residuals change.';
+  } else {
+    const new2=c.P.reduce((s,{a,b})=>{const rr=dot(a,c.x_eps)-b;return s+rr*rr;},0);
+    stats.innerHTML=`<span class="stat">x* = (<b>${f3(c.xs[0])}</b>, <b>${f3(c.xs[1])}</b>)</span>`+
+      `<span class="stat">x(ε) = (<b>${f3(c.x_eps[0])}</b>, <b>${f3(c.x_eps[1])}</b>)</span>`+
+      `<span class="stat">r_new at x* = <b class="${cls(c.rnew)}">${f3(c.rnew)}</b></span>`+
+      `<span class="stat">Σ old r_i²: <b>${f3(old2)}</b> → <b>${f3(new2)}</b></span>`+
+      `<span class="stat">ε·r_new² at x(ε): <b>${f3(S.eps*c.rnewEps*c.rnewEps)}</b></span>`;
+    let h='<tr><th>line</th><th>r_i old</th><th>r_i at x(ε)</th><th>Δr_i exact</th><th>Δr_i 1st-order</th><th>k_i</th></tr>';
+    c.P.forEach((_,i)=>{ h+=`<tr><td><span class="sw" style="background:${pal[i%pal.length]};vertical-align:middle"></span> ${i+1}</td><td class="mono">${f3(c.r[i])}</td><td class="mono">${f3(c.r[i]+c.dr[i])}</td><td class="mono ${cls(c.dr[i])}">${f3(c.dr[i])}</td><td class="mono ${cls(c.drfo[i])}">${f3(c.drfo[i])}</td><td class="mono">${f3(c.k[i])}</td></tr>`; });
+    h+=`<tr><td><span class="sw" style="background:var(--new);vertical-align:middle"></span> new</td><td class="mono">${f3(c.rnew)}</td><td class="mono">${f3(c.rnewEps)}</td><td class="mono ${cls(c.rnewEps-c.rnew)}">${f3(c.rnewEps-c.rnew)}</td><td class="mono ${cls(-S.eps*c.rnew*c.q)}">${f3(-S.eps*c.rnew*c.q)}</td><td class="mono">${f3(c.q)}</td></tr>`;
+    tbl.innerHTML=h;
+    note.textContent='Δr_i exact uses the Sherman–Morrison update; 1st-order is ε times the influence function. They agree for small ε and diverge as ε·q grows.';
+  }
+  // walkthrough
+  document.getElementById('noNew').style.display=S.newLine?'none':'';
+  const rowsA=c.P.map(({a})=>`${f3(a[0])}&${f3(a[1])}`).join('\\\\'), rowsB=c.P.map(({b})=>f3(b)).join('\\\\');
+  tex('w1',`A=\\begin{bmatrix}${rowsA}\\end{bmatrix},\\qquad b=\\begin{bmatrix}${rowsB}\\end{bmatrix}`);
+  const terms=c.P.map(({a})=>colv(a)+rowv(a)).join('+');
+  tex('w2',`H=${terms}=${mat2(c.H)}`);
+  tex('w3',`x^\\star=H^{-1}A^\\top b=${mat2(c.Hi)}${colv(c.g)}=${colv(c.xs)}`);
+  tex('w4',`r=Ax^\\star-b=\\begin{bmatrix}${c.r.map(f3).join('\\\\')}\\end{bmatrix}`);
+  if(S.newLine){
+    tex('w5',`a=${rowv(c.a)}^{\\!\\top},\\quad \\beta=${f3(c.b)},\\qquad r_{\\text{new}}=a^\\top x^\\star-\\beta=${f3(c.rnew)}`);
+    tex('w6',`v=H^{-1}a=${colv(c.v)},\\qquad q=a^\\top v=${f3(c.q)}\\qquad(\\text{Kaczmarz would use }a=${colv(c.a)})`);
+    tex('w7',`\\varepsilon=${f2(S.eps)}:\\quad x(\\varepsilon)=x^\\star-\\frac{${f2(S.eps)}\\cdot${f3(c.rnew)}}{1+${f2(S.eps)}\\cdot${f3(c.q)}}\\,v=${colv(c.x_eps)},\\qquad x^\\star-\\varepsilon r_{\\text{new}}v=${colv(c.x_fo)},\\qquad x(\\infty)=${colv(c.x_inf)}`);
+    const lines=c.P.map((_,i)=>`\\Delta r_{${i+1}}&=-${f3(c.coef)}\\times${f3(c.k[i])}=${f3(c.dr[i])}&(\\text{1st order: }${f3(c.drfo[i])})`).join('\\\\');
+    tex('w8',`\\frac{\\varepsilon r_{\\text{new}}}{1+\\varepsilon q}=${f3(c.coef)},\\qquad\\begin{aligned}${lines}\\end{aligned}`);
+  } else {
+    ['w5','w6','w7','w8'].forEach(id=>{document.getElementById(id).innerHTML='<span class="dim">draw a new line first</span>';});
+  }
+}
+
+// ---------- boot ----------
+renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});
+window.addEventListener('resize',resize);
+if(window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+resize();
+})();
+</script>
+</body>
+</html>
